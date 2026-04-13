@@ -8,30 +8,28 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   :root {
-    --veris-deep: #0A3D2E;
-    --veris-signal: #1D9E75;
-    --veris-mist: #5DCAA5;
-    --veris-risk: #E24B4A;
-    --veris-amber: #EF9F27;
+    --veris-deep: #1B3A2D;
+    --veris-signal: #2DB87A;
+    --veris-mist: #8ADBB4;
+    --veris-risk: #E05252;
+    --veris-amber: #F5A623;
     --veris-ink: #0F0F0F;
-    --veris-surface: #F5F4F0;
-    --veris-void: #111816;
-    --veris-card-light: #FFFFFF;
-    --veris-card-dark: #1A1E1C;
-    /* Map old vars for compatibility */
-    --bg: #111816;
-    --surface: #1A1E1C;
-    --surface2: #222725;
+    --veris-void: #0F1A13;
+    --veris-card-dark: #182620;
+    --veris-nav: #111A15;
+    --bg: #0F1A13;
+    --surface: #182620;
+    --surface2: #1E2E25;
     --border: rgba(255, 255, 255, 0.10);
     --text: #e4e7f1;
     --muted: #7c809a;
-    --accent: #1D9E75;
-    --accent2: #5DCAA5;
-    --green: #1D9E75;
-    --red: #E24B4A;
-    --yellow: #EF9F27;
-    --cyan: #5DCAA5;
-    --glow: rgba(29,158,117,0.15);
+    --accent: #2DB87A;
+    --accent2: #8ADBB4;
+    --green: #2DB87A;
+    --red: #E05252;
+    --yellow: #F5A623;
+    --cyan: #8ADBB4;
+    --glow: rgba(45,184,122,0.15);
     --fg: #e4e7f1;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,14 +46,15 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 28px;
   }
-  header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.5px; font-family: Georgia, serif; }
-  header h1 .veris-v { font-weight: 500; color: #FFFFFF; }
-  header h1 .veris-eris { opacity: 0.65; }
-  header h1 .veris-dot { color: #5DCAA5; font-size: 0.6em; margin-left: 2px; }
+  header h1 { font-size: 26px; font-weight: 400; letter-spacing: -0.5px; font-family: Georgia, serif; }
+  header h1 .veris-v { font-weight: 400; color: #FFFFFF; }
+  header h1 .veris-eris { opacity: 0.55; }
+  header h1 .veris-dot { display: inline-block; width: 7px; height: 7px; background: #2DB87A; border-radius: 50%; margin-left: 4px; margin-bottom: 8px; vertical-align: bottom; }
   .status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .status-dot.ok { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
-  .status-dot.off { background: var(--red); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-dot.ok { background: #2DB87A; }
+  .status-dot.off { background: #E05252; }
+  .status-dot.stale { background: #F5A623; }
 
   /* ── Panels ─────────────────────────────────── */
   .panel {
@@ -64,7 +63,7 @@
     transition: border-color 0.2s;
     position: relative;
   }
-  .panel:hover { border-color: rgba(29,158,117,0.2); }
+  .panel:hover { border-color: rgba(45,184,122,0.2); }
   .panel h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .panel h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; color: var(--muted); }
   .section-badge {
@@ -121,8 +120,9 @@
     padding: 9px 18px; border-radius: 8px; border: none;
     cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
   }
-  .btn-primary { background: var(--veris-signal); color: white; }
-  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary { background: #2DB87A; color: #0F1A13; font-weight: 500; transition: all 180ms ease-out; }
+  .btn-primary:hover { background: #25A06A; }
+  .btn-primary:active { transform: scale(0.985); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   .btn-secondary { background: var(--border); color: var(--text); }
   .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 4px 10px; }
@@ -151,11 +151,17 @@
   .metric-card {
     background: var(--bg); border-radius: 10px; padding: 14px; text-align: center;
     border: 1px solid transparent; transition: border-color 0.2s;
+    border-left: 3px solid var(--veris-amber);
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
   }
-  .metric-card:hover { border-color: var(--border); }
+  .metric-card.mc-positive { border-left-color: #2DB87A; }
+  .metric-card.mc-negative { border-left-color: #E05252; }
+  .metric-card.mc-neutral { border-left-color: #F5A623; }
+  .metric-card:hover { border-color: var(--border); border-left-width: 3px; }
   .metric-card .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
   .metric-card .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .metric-card .sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+  .metric-card .disclosure { font-size: 10px; color: rgba(255,255,255,0.30); margin-top: 3px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .positive { color: var(--green); }
   .negative { color: var(--red); }
   .neutral { color: var(--yellow); }
@@ -163,11 +169,11 @@
   /* ── Tables ─────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   th { text-align: left; padding: 8px 6px; color: var(--muted); font-weight: 600; font-size: 0.72rem; border-bottom: 1px solid var(--border); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
-  td { padding: 8px 6px; border-bottom: 1px solid rgba(35,38,64,0.5); white-space: nowrap; }
-  tr:hover td { background: rgba(29,158,117,0.03); }
+  td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+  tr:hover td { background: rgba(45,184,122,0.03); }
 
   /* ── News & AI ──────────────────────────────── */
-  .news-item { padding: 10px 0; border-bottom: 1px solid rgba(35,38,64,0.5); }
+  .news-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
   .news-item:last-child { border: none; }
   .news-title { font-weight: 500; font-size: 0.88rem; }
   .news-title a { color: var(--text); text-decoration: none; }
@@ -177,19 +183,19 @@
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
   }
-  .sentiment-positive { background: rgba(52,211,153,0.12); color: var(--green); }
-  .sentiment-negative { background: rgba(248,113,113,0.12); color: var(--red); }
-  .sentiment-neutral { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .sentiment-positive { background: rgba(45,184,122,0.12); color: var(--green); }
+  .sentiment-negative { background: rgba(224,82,82,0.12); color: var(--red); }
+  .sentiment-neutral { background: rgba(245,166,35,0.12); color: var(--yellow); }
   .sentiment-legend { font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-  .btn-export { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.72rem; padding: 5px 12px; border-radius: 6px; }
-  .btn-export:hover { border-color: var(--accent); color: var(--text); }
+  .btn-export { background: transparent; color: rgba(255,255,255,0.65); border: 0.5px solid rgba(255,255,255,0.20); font-size: 12px; padding: 5px 12px; border-radius: 6px; transition: all 120ms ease-out; }
+  .btn-export:hover { border-color: rgba(45,184,122,0.50); color: #2DB87A; }
   .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
   .header-row h2 { margin-bottom: 0; }
 
   .ai-box {
-    background: rgba(29,158,117,0.06);
-    border: 1px solid rgba(29,158,117,0.15);
+    background: rgba(45,184,122,0.06);
+    border: 1px solid rgba(45,184,122,0.15);
     border-radius: 10px; padding: 18px; font-size: 0.9rem;
     white-space: pre-wrap; line-height: 1.7;
   }
@@ -222,7 +228,7 @@
   .risk-card .risk-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
 
   /* ── Stress Test ────────────────────────────── */
-  .stress-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(35,38,64,0.5); align-items: center; }
+  .stress-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
   .stress-row.header { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
   .stress-name { font-weight: 600; font-size: 0.85rem; }
   .stress-desc { font-size: 0.7rem; color: var(--muted); }
@@ -237,7 +243,7 @@
   /* ── Navigation Bar ─────────────────────────── */
   .nav-bar {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(17,24,22,0.92); backdrop-filter: blur(12px);
+    background: rgba(17,26,21,0.92); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 24px; margin: 0 -24px 20px;
     overflow-x: auto; white-space: nowrap;
@@ -248,13 +254,13 @@
   .nav-links { display: flex; gap: 0; min-width: max-content; }
   .nav-link {
     display: inline-block; padding: 10px 14px;
-    font-size: 0.72rem; font-weight: 600; color: var(--muted);
+    font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.38);
     text-decoration: none; text-transform: uppercase; letter-spacing: 0.4px;
-    border-bottom: 2px solid transparent; transition: all 0.2s;
+    border-bottom: 2px solid transparent; transition: all 80ms ease-out;
     cursor: pointer; flex-shrink: 0;
   }
-  .nav-link:hover { color: var(--text); border-bottom-color: var(--accent); }
-  .nav-link.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .nav-link:hover { color: rgba(255,255,255,0.65); border-bottom-color: var(--accent); }
+  .nav-link.active { color: #2DB87A; border-bottom-color: #2DB87A; }
   @media (max-width: 768px) {
     .nav-bar { padding: 0 12px; margin: 0 -12px 16px; }
     .nav-link { padding: 8px 10px; font-size: 0.68rem; }
@@ -289,10 +295,10 @@
     display: inline-block; padding: 4px 12px; border-radius: 6px;
     font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
   }
-  .regime-low { background: rgba(52,211,153,0.15); color: var(--green); }
-  .regime-normal { background: rgba(99,102,241,0.15); color: var(--accent2); }
-  .regime-elevated { background: rgba(251,191,36,0.15); color: var(--yellow); }
-  .regime-crisis { background: rgba(248,113,113,0.15); color: var(--red); }
+  .regime-low { background: rgba(45,184,122,0.15); color: var(--green); }
+  .regime-normal { background: rgba(138,219,180,0.15); color: var(--accent2); }
+  .regime-elevated { background: rgba(245,166,35,0.15); color: var(--yellow); }
+  .regime-crisis { background: rgba(224,82,82,0.15); color: var(--red); }
 
   /* ── Data Quality ──────────────────────────── */
   .quality-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
@@ -300,6 +306,23 @@
   .quality-good { background: var(--green); }
   .quality-ok { background: var(--yellow); }
   .quality-bad { background: var(--red); }
+
+  /* ── Freshness Bar ─────────────────────────── */
+  .freshness-bar {
+    background: rgba(45,184,122,0.07); border: 0.5px solid rgba(45,184,122,0.18);
+    border-radius: 8px; padding: 7px 14px; margin-top: 12px; margin-bottom: 4px;
+    font-size: 11px; color: rgba(45,184,122,0.85);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .freshness-bar.stale { background: rgba(245,166,35,0.07); border-color: rgba(245,166,35,0.18); color: rgba(245,166,35,0.85); }
+  .freshness-dot { width: 6px; height: 6px; border-radius: 50%; background: #2DB87A; flex-shrink: 0; }
+  .freshness-bar.stale .freshness-dot { background: #F5A623; }
+
+  /* ── Footer ──────────────────────────────────── */
+  .veris-footer {
+    text-align: center; padding: 32px 0 16px; font-size: 11px;
+    color: rgba(255,255,255,0.25);
+  }
 
   /* ── Auth Overlay ──────────────────────────── */
   .auth-overlay {
@@ -317,9 +340,9 @@
   .auth-card h2 {
     font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; text-align: center;
   }
-  .auth-card h2 .veris-v { font-family: Georgia, serif; font-weight: 500; color: #FFFFFF; }
-  .auth-card h2 .veris-eris { font-family: Georgia, serif; opacity: 0.65; }
-  .auth-card h2 .veris-dot { color: #5DCAA5; }
+  .auth-card h2 .veris-v { font-family: Georgia, serif; font-weight: 400; color: #FFFFFF; }
+  .auth-card h2 .veris-eris { font-family: Georgia, serif; opacity: 0.55; }
+  .auth-card h2 .veris-dot { display: inline-block; width: 7px; height: 7px; background: #2DB87A; border-radius: 50%; margin-left: 4px; margin-bottom: 4px; vertical-align: middle; }
   .auth-card .auth-sub { text-align: center; font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; }
   .auth-card label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; margin-top: 12px; }
   .auth-card input { width: 100%; }
@@ -368,7 +391,7 @@
     background: var(--bg); color: var(--muted); border: 1px solid var(--border);
     padding: 6px 16px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: 600;
   }
-  .admin-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .admin-tab.active { background: #2DB87A; color: #0F1A13; border-color: #2DB87A; }
   .admin-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
   .admin-stat {
     background: var(--bg); border-radius: 8px; padding: 12px; text-align: center;
@@ -467,7 +490,7 @@
   <div class="auth-card" id="authCard">
     <!-- Login Form -->
     <div id="loginForm">
-      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span></h2>
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span></h2>
       <div class="auth-sub">Your portfolio. The truth.</div>
       <label>Username</label>
       <input id="loginUsername" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()">
@@ -482,7 +505,7 @@
     </div>
     <!-- Register Form -->
     <div id="registerForm" style="display:none">
-      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span> Create Account</h2>
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span> Create Account</h2>
       <div class="auth-sub">Your portfolio will be saved and verified</div>
       <label>Username</label>
       <input id="regUsername" placeholder="Choose a username" onkeydown="if(event.key==='Enter')doRegister()">
@@ -502,7 +525,7 @@
 
 <div class="container">
   <header>
-    <h1><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span></h1>
+    <h1><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span></h1>
     <div style="display:flex;align-items:center;gap:16px">
       <div class="user-bar" id="userBar" style="display:none">
         <span class="save-indicator" id="saveIndicator">Saved</span>
@@ -542,6 +565,10 @@
     <div class="panel full-width" id="sectionSummary">
       <h2><span class="section-badge"></span> Portfolio Summary <span class="info-btn" onclick="showInfo('summary')">i</span></h2>
       <div class="summary-grid" id="summaryGrid"></div>
+      <div class="freshness-bar" id="freshnessBar" style="display:none">
+        <span class="freshness-dot"></span>
+        <span id="freshnessText"></span>
+      </div>
     </div>
 
     <div class="dashboard">
@@ -732,6 +759,8 @@
 
     </div>
   </div>
+
+  <div class="veris-footer">Veris · Decision-support information only · Not investment advice · veris.finance</div>
 </div>
 
 <script>
@@ -1181,8 +1210,9 @@ async function checkHealth() {
     const data = await r.json();
     const dot = document.getElementById('modelStatus');
     const text = document.getElementById('modelStatusText');
+    const utcTime = new Date().toISOString().slice(11,16);
     if (data.model_server === 'connected') {
-      dot.className = 'status-dot ok'; text.textContent = 'Veris connected';
+      dot.className = 'status-dot ok'; text.textContent = `Veris live \u00B7 ${utcTime} UTC`;
     } else {
       dot.className = 'status-dot off'; text.textContent = 'Veris offline (quant metrics still work)';
     }
@@ -1258,77 +1288,104 @@ function renderResults(data) {
   const fmtP = (v, dp = 2) => v == null ? 'N/A' : (v * 100).toFixed(dp) + '%';
   const rfPct = s.rf_annual_pct != null ? s.rf_annual_pct.toFixed(2) + '%' : 'N/A';
   const lookbackLabel = s.lookback_days ? `${s.lookback_days}d lookback` : 'lookback unknown';
+  const mcSign = v => v == null ? 'mc-neutral' : v > 0 ? 'mc-positive' : v < 0 ? 'mc-negative' : 'mc-neutral';
+  const ld = s.lookback_days || 252;
   document.getElementById('summaryGrid').innerHTML = `
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">Total Value</div>
       <div class="value">$${fmt(s.total_value)}</div>
       <div class="sub">cost $${fmt(s.total_cost)}</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.total_gain_loss_pct)}">
       <div class="label">Price Return</div>
       <div class="value ${signCls(s.total_gain_loss_pct)}">${s.total_gain_loss_pct >= 0 ? '+' : ''}${s.total_gain_loss_pct}%</div>
       <div class="sub">$${fmt(s.total_gain_loss)}</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.total_return_pct)}">
       <div class="label">Total Return</div>
       <div class="value ${signCls(s.total_return_pct)}">${s.total_return_pct >= 0 ? '+' : ''}${s.total_return_pct}%</div>
       <div class="sub">incl divs $${fmt(s.total_dividends_received || 0)}</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">Volatility</div>
       <div class="value">${(s.portfolio_volatility * 100).toFixed(1)}%</div>
       <div class="sub">annualized, ${lookbackLabel}</div>
+      <div class="disclosure">\u03C3_daily \u00D7 \u221A252 \u00B7 ${ld}d window</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_sharpe)}">
       <div class="label">Sharpe</div>
       <div class="value ${signCls(s.portfolio_sharpe)}">${fmtN(s.portfolio_sharpe)}</div>
       <div class="sub">Rf ${rfPct}</div>
+      <div class="disclosure">Rf ${rfPct} \u00B7 ${ld}d lookback</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_sortino)}">
       <div class="label">Sortino</div>
       <div class="value ${signCls(s.portfolio_sortino)}">${fmtN(s.portfolio_sortino)}</div>
       <div class="sub">downside only</div>
+      <div class="disclosure">MAR = 0 \u00B7 downside only \u00B7 ${ld}d</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_calmar)}">
       <div class="label">Calmar</div>
       <div class="value ${signCls(s.portfolio_calmar)}">${fmtN(s.portfolio_calmar)}</div>
       <div class="sub">return over max drawdown</div>
+      <div class="disclosure">CAGR / |Max Drawdown|</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_treynor)}">
       <div class="label">Treynor</div>
       <div class="value ${signCls(s.portfolio_treynor)}">${fmtN(s.portfolio_treynor)}</div>
       <div class="sub">excess return per beta</div>
+      <div class="disclosure">(R_p \u2212 Rf) / \u03B2</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_information_ratio)}">
       <div class="label">Info Ratio</div>
       <div class="value ${signCls(s.portfolio_information_ratio)}">${fmtN(s.portfolio_information_ratio)}</div>
       <div class="sub">active return vs SPY</div>
+      <div class="disclosure">(R_p \u2212 R_spy) / tracking error</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">Beta vs SPY</div>
       <div class="value">${fmtN(s.portfolio_beta)}</div>
       <div class="sub">252d OLS regression</div>
+      <div class="disclosure">252d OLS vs SPY \u00B7 log returns</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card ${mcSign(s.portfolio_alpha)}">
       <div class="label">Alpha</div>
       <div class="value ${signCls(s.portfolio_alpha)}">${fmtP(s.portfolio_alpha)}</div>
       <div class="sub">Jensen CAPM</div>
+      <div class="disclosure">Jensen CAPM \u00B7 R_p \u2212 [Rf + \u03B2(Rm\u2212Rf)]</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">HHI</div>
       <div class="value">${fmtN(s.hhi, 3)}</div>
       <div class="sub">concentration, lower is better</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">Effective N</div>
       <div class="value">${fmtN(s.effective_n, 2)}</div>
       <div class="sub">${s.num_holdings} positions held</div>
     </div>
-    <div class="metric-card">
+    <div class="metric-card mc-neutral">
       <div class="label">Div Ratio</div>
       <div class="value">${fmtN(s.diversification_ratio)}</div>
       <div class="sub">above 1 means diversified</div>
     </div>`;
+
+  // Freshness bar
+  const holdings = s.holdings || data.analytics.holdings || [];
+  const freshBar = document.getElementById('freshnessBar');
+  const freshText = document.getElementById('freshnessText');
+  const pFresh = data.price_freshness || {};
+  const anyStale = Object.values(pFresh).some(v => v && v.is_stale);
+  const nowUtc = new Date().toISOString().slice(11,16);
+  const priceSnippets = holdings.slice(0,6).map(h => `${h.symbol} $${fmt(h.current_price)}`).join(' \u00B7 ');
+  freshBar.style.display = '';
+  if (anyStale) {
+    freshBar.className = 'freshness-bar stale';
+    freshText.textContent = `Data stale \u00B7 ${priceSnippets} \u00B7 Last calculated ${nowUtc} UTC`;
+  } else {
+    freshBar.className = 'freshness-bar';
+    freshText.textContent = `All prices verified live \u00B7 ${priceSnippets} \u00B7 Last calculated ${nowUtc} UTC`;
+  }
 
   // AI Insight
   const aiEl = document.getElementById('aiInsight');
@@ -1418,12 +1475,12 @@ function renderResults(data) {
       if (!v) return '';
       const label = labels[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       if (v.error) {
-        return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(35,38,64,0.5)"><span style="color:var(--muted)">${label}</span><span style="color:var(--muted);font-size:0.75rem">N/A</span></div>`;
+        return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="color:var(--muted)">${label}</span><span style="color:var(--muted);font-size:0.75rem">N/A</span></div>`;
       }
       const unit = v.unit === 'percent' ? '%' : '';
       const rawVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
       const val = Number.isFinite(rawVal) ? rawVal.toFixed(2) : v.value;
-      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(35,38,64,0.5)">
+      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
         <span style="color:var(--muted)">${label}</span>
         <span><strong>${val}${unit}</strong> <small style="color:var(--muted)">(${v.date})</small></span>
       </div>`;
