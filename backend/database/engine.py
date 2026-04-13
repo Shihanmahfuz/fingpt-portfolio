@@ -2,7 +2,7 @@
 engine.py — Database connection, pooling, and session management.
 
 Supports three backends via DATABASE_URL:
-  - SQLite:      sqlite:///./data/fingpt.db         (default, zero config)
+  - SQLite:      sqlite:///./data/veris.db         (default, zero config)
   - MySQL:       mysql+pymysql://user:pass@host/db
   - PostgreSQL:  postgresql+asyncpg://user:pass@host/db
 
@@ -23,7 +23,7 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from backend.database.models import Base
 
-logger = logging.getLogger("fingpt.database")
+logger = logging.getLogger("veris.database")
 
 _engine = None
 _SessionLocal = None
@@ -39,7 +39,7 @@ def _build_url() -> str:
     db_host = os.getenv("DB_HOST")
     db_user = os.getenv("DB_USER")
     db_pass = os.getenv("DB_PASSWORD")
-    db_name = os.getenv("DB_NAME", "fingpt")
+    db_name = os.getenv("DB_NAME", "veris")
     db_port = os.getenv("DB_PORT", "3306")
     db_driver = os.getenv("DB_DRIVER", "mysql+pymysql")
 
@@ -49,7 +49,7 @@ def _build_url() -> str:
     # Default: SQLite in project data/ directory
     data_dir = Path(__file__).parent.parent.parent / "data"
     data_dir.mkdir(exist_ok=True)
-    return f"sqlite:///{data_dir / 'fingpt.db'}"
+    return f"sqlite:///{data_dir / 'veris.db'}"
 
 
 def init_db():

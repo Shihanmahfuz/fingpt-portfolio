@@ -1,5 +1,5 @@
 """
-crud.py — Data Access Layer for FinGPT Portfolio Analyzer.
+crud.py — Data Access Layer for Veris Portfolio Intelligence.
 
 Provides typed, reusable CRUD operations for all ORM models.
 Every write operation is automatically audit-logged.
@@ -27,7 +27,7 @@ from backend.database.models import (
     TradeJournal, Watchlist, Alert, AuditLog,
 )
 
-logger = logging.getLogger("fingpt.crud")
+logger = logging.getLogger("veris.crud")
 
 
 def _utcnow():

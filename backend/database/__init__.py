@@ -1,5 +1,5 @@
 """
-database — Persistence layer for FinGPT Portfolio Analyzer.
+database — Persistence layer for Veris Portfolio Intelligence.
 
 Supports SQLite (local/dev) and MySQL/PostgreSQL (production).
 Configure via DATABASE_URL in config/.env.

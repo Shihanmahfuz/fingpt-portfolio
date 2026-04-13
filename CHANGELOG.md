@@ -1,6 +1,40 @@
 # Changelog
 
-All notable changes to FinGPT Portfolio Analyzer.
+All notable changes to Veris — Portfolio Intelligence.
+
+---
+
+## v2.0.0 (2026-04-13)
+
+Complete rebrand from FinGPT to Veris. New visual identity, design system, and brand voice.
+
+### Changed
+
+**Brand Identity** (Shihan Mahfuz)
+- Renamed from "FinGPT Portfolio Analyzer" to "Veris — Portfolio Intelligence"
+- New color system: Veris Deep (#0A3D2E), Signal (#1D9E75), Mist (#5DCAA5), Risk Red (#E24B4A), Amber (#EF9F27)
+- Typography: Georgia serif for brand/display, system sans for UI, monospace for financial values
+- Veris logotype with signature dot (reads as decimal point / verification mark)
+- Dark theme built on Void (#111816) with green-tinted surfaces
+- All buttons, accents, and interactive elements use Veris Signal green
+- Metric card values rendered in monospace for digit alignment
+
+**Security**
+- Password hashing upgraded from SHA-256 to PBKDF2-HMAC-SHA256 (160k iterations) with bcrypt fallback
+- Removed hardcoded default admin key; ADMIN_KEY env var now required
+- Timing-safe comparison for admin key verification
+- Legacy password hashes auto-migrate on login
+
+**Backend**
+- All module docstrings, loggers, and FastAPI title updated to Veris
+- Database file renamed from fingpt.db to veris.db
+- Session storage key renamed from fingpt_session to veris_session
+
+**Frontend**
+- Auth overlay updated with Veris branding and Georgia serif logotype
+- Admin panel styled with Veris design tokens
+- All FinGPT text references replaced throughout UI and JavaScript
+- Model status messages updated to Veris voice
 
 ---
 

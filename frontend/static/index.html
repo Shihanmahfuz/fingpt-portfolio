@@ -3,28 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FinGPT Portfolio Analyzer</title>
+<title>Veris — Portfolio Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   :root {
-    --bg: #0a0b10;
-    --surface: #13151f;
-    --surface2: #1a1d2e;
-    --border: #232640;
+    --veris-deep: #0A3D2E;
+    --veris-signal: #1D9E75;
+    --veris-mist: #5DCAA5;
+    --veris-risk: #E24B4A;
+    --veris-amber: #EF9F27;
+    --veris-ink: #0F0F0F;
+    --veris-surface: #F5F4F0;
+    --veris-void: #111816;
+    --veris-card-light: #FFFFFF;
+    --veris-card-dark: #1A1E1C;
+    /* Map old vars for compatibility */
+    --bg: #111816;
+    --surface: #1A1E1C;
+    --surface2: #222725;
+    --border: rgba(255, 255, 255, 0.10);
     --text: #e4e7f1;
     --muted: #7c809a;
-    --accent: #6366f1;
-    --accent2: #818cf8;
-    --green: #34d399;
-    --red: #f87171;
-    --yellow: #fbbf24;
-    --cyan: #22d3ee;
-    --glow: rgba(99,102,241,0.15);
+    --accent: #1D9E75;
+    --accent2: #5DCAA5;
+    --green: #1D9E75;
+    --red: #E24B4A;
+    --yellow: #EF9F27;
+    --cyan: #5DCAA5;
+    --glow: rgba(29,158,117,0.15);
+    --fg: #e4e7f1;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica Neue, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
@@ -36,8 +48,10 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 28px;
   }
-  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
-  header h1 span { background: linear-gradient(135deg, var(--accent), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.5px; font-family: Georgia, serif; }
+  header h1 .veris-v { font-weight: 500; color: #FFFFFF; }
+  header h1 .veris-eris { opacity: 0.65; }
+  header h1 .veris-dot { color: #5DCAA5; font-size: 0.6em; margin-left: 2px; }
   .status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; }
   .status-dot.ok { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
@@ -50,7 +64,7 @@
     transition: border-color 0.2s;
     position: relative;
   }
-  .panel:hover { border-color: rgba(99,102,241,0.25); }
+  .panel:hover { border-color: rgba(29,158,117,0.2); }
   .panel h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .panel h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; color: var(--muted); }
   .section-badge {
@@ -107,8 +121,8 @@
     padding: 9px 18px; border-radius: 8px; border: none;
     cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
   }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #818cf8); color: white; }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+  .btn-primary { background: var(--veris-signal); color: white; }
+  .btn-primary:hover { opacity: 0.9; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   .btn-secondary { background: var(--border); color: var(--text); }
   .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 4px 10px; }
@@ -140,7 +154,7 @@
   }
   .metric-card:hover { border-color: var(--border); }
   .metric-card .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
-  .metric-card .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+  .metric-card .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .metric-card .sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
   .positive { color: var(--green); }
   .negative { color: var(--red); }
@@ -150,7 +164,7 @@
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   th { text-align: left; padding: 8px 6px; color: var(--muted); font-weight: 600; font-size: 0.72rem; border-bottom: 1px solid var(--border); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
   td { padding: 8px 6px; border-bottom: 1px solid rgba(35,38,64,0.5); white-space: nowrap; }
-  tr:hover td { background: rgba(99,102,241,0.03); }
+  tr:hover td { background: rgba(29,158,117,0.03); }
 
   /* ── News & AI ──────────────────────────────── */
   .news-item { padding: 10px 0; border-bottom: 1px solid rgba(35,38,64,0.5); }
@@ -174,8 +188,8 @@
   .header-row h2 { margin-bottom: 0; }
 
   .ai-box {
-    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(34,211,238,0.05));
-    border: 1px solid rgba(99,102,241,0.2);
+    background: rgba(29,158,117,0.06);
+    border: 1px solid rgba(29,158,117,0.15);
     border-radius: 10px; padding: 18px; font-size: 0.9rem;
     white-space: pre-wrap; line-height: 1.7;
   }
@@ -204,7 +218,7 @@
   .risk-card.warning { border-left-color: var(--yellow); }
   .risk-card.ok { border-left-color: var(--green); }
   .risk-card .risk-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
-  .risk-card .risk-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+  .risk-card .risk-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .risk-card .risk-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
 
   /* ── Stress Test ────────────────────────────── */
@@ -223,7 +237,7 @@
   /* ── Navigation Bar ─────────────────────────── */
   .nav-bar {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(10,11,16,0.92); backdrop-filter: blur(12px);
+    background: rgba(17,24,22,0.92); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     padding: 0 24px; margin: 0 -24px 20px;
     overflow-x: auto; white-space: nowrap;
@@ -303,7 +317,9 @@
   .auth-card h2 {
     font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; text-align: center;
   }
-  .auth-card h2 span { background: linear-gradient(135deg, var(--accent), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .auth-card h2 .veris-v { font-family: Georgia, serif; font-weight: 500; color: #FFFFFF; }
+  .auth-card h2 .veris-eris { font-family: Georgia, serif; opacity: 0.65; }
+  .auth-card h2 .veris-dot { color: #5DCAA5; }
   .auth-card .auth-sub { text-align: center; font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; }
   .auth-card label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; margin-top: 12px; }
   .auth-card input { width: 100%; }
@@ -343,7 +359,7 @@
   }
   .admin-panel h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
   .admin-panel h2 span.admin-badge {
-    background: linear-gradient(135deg, var(--red), #fb923c);
+    background: var(--veris-deep);
     color: white; font-size: 0.62rem; padding: 2px 8px; border-radius: 4px;
     text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
   }
@@ -375,7 +391,7 @@
   }
   .admin-login-gate input:focus { border-color: var(--accent); outline: none; }
   .admin-login-gate .admin-login-btn {
-    margin-top: 16px; padding: 10px 32px; background: linear-gradient(135deg, var(--red), #fb923c);
+    margin-top: 16px; padding: 10px 32px; background: var(--veris-signal);
     color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
     font-size: 0.85rem;
   }
@@ -416,8 +432,8 @@
     <button class="admin-close" onclick="closeAdmin()">Close</button>
     <!-- Admin Login Gate -->
     <div id="adminLoginGate" class="admin-login-gate">
-      <h3>Admin Login</h3>
-      <p>Enter admin credentials to access the database dashboard</p>
+      <h3>Veris Admin</h3>
+      <p>Enter admin credentials to access the Veris database</p>
       <input type="text" id="adminUsername" placeholder="Username" onkeydown="if(event.key==='Enter')doAdminLogin()">
       <input type="password" id="adminPassword" placeholder="Password" onkeydown="if(event.key==='Enter')doAdminLogin()">
       <button class="admin-login-btn" onclick="doAdminLogin()">Sign In as Admin</button>
@@ -451,8 +467,8 @@
   <div class="auth-card" id="authCard">
     <!-- Login Form -->
     <div id="loginForm">
-      <h2><span>FinGPT</span> Portfolio Analyzer</h2>
-      <div class="auth-sub">Sign in to save your portfolio and track history</div>
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span></h2>
+      <div class="auth-sub">Your portfolio. The truth.</div>
       <label>Username</label>
       <input id="loginUsername" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()">
       <label>Password</label>
@@ -466,8 +482,8 @@
     </div>
     <!-- Register Form -->
     <div id="registerForm" style="display:none">
-      <h2><span>FinGPT</span> Create Account</h2>
-      <div class="auth-sub">Your portfolio will be saved automatically</div>
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span> Create Account</h2>
+      <div class="auth-sub">Your portfolio will be saved and verified</div>
       <label>Username</label>
       <input id="regUsername" placeholder="Choose a username" onkeydown="if(event.key==='Enter')doRegister()">
       <label>Email</label>
@@ -486,7 +502,7 @@
 
 <div class="container">
   <header>
-    <h1><span>FinGPT</span> Portfolio Analyzer</h1>
+    <h1><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot">·</span></h1>
     <div style="display:flex;align-items:center;gap:16px">
       <div class="user-bar" id="userBar" style="display:none">
         <span class="save-indicator" id="saveIndicator">Saved</span>
@@ -532,7 +548,7 @@
 
       <!-- AI Insight -->
       <div class="panel full-width" id="sectionAI">
-        <h2><span class="section-badge"></span> AI Insight (FinGPT) <span class="info-btn" onclick="showInfo('ai')">i</span></h2>
+        <h2><span class="section-badge"></span> AI Insight (Veris) <span class="info-btn" onclick="showInfo('ai')">i</span></h2>
         <div id="aiInsight" class="ai-box unavailable">Start the Colab notebook to enable AI insights.</div>
       </div>
 
@@ -662,7 +678,7 @@
           <span class="sentiment-badge sentiment-positive">positive</span> Bullish
           <span class="sentiment-badge sentiment-neutral">neutral</span> No signal
           <span class="sentiment-badge sentiment-negative">negative</span> Bearish
-          <span style="color:var(--muted)">(via FinGPT)</span>
+          <span style="color:var(--muted)">(via Veris)</span>
         </div>
         <div id="newsContainer"></div>
       </div>
@@ -740,11 +756,11 @@ const INFO = {
     tags: ['Sharpe', 'Sortino', 'Treynor', 'Information Ratio', 'HHI', 'Diversification Ratio', 'Jensen Alpha', '252d OLS Beta'],
   },
   ai: {
-    title: 'AI Insight (FinGPT)',
+    title: 'AI Insight (Veris)',
     what: 'A natural language commentary on the portfolio generated by a fine tuned large language model. It reads the numeric metrics, macro context, and recent headlines and produces a concise risk assessment.',
-    method: '<b>Model</b><br>Meta Llama 2 7B chat, fine tuned with the FinGPT LoRA adapter.<br><br><b>Quantisation</b><br>4 bit NF4 so that the weights fit on a free Google Colab T4 GPU (about 3.5 GB VRAM).<br><br><b>Pipeline</b><br>The backend serialises portfolio metrics, macro snapshot, and five headlines into a structured prompt and forwards it to the Colab server over an ngrok tunnel. Sentiment classification runs per headline; insight generation runs once per analyse call.',
+    method: '<b>Model</b><br>Meta Llama 2 7B chat, fine tuned with the Veris LoRA adapter.<br><br><b>Quantisation</b><br>4 bit NF4 so that the weights fit on a free Google Colab T4 GPU (about 3.5 GB VRAM).<br><br><b>Pipeline</b><br>The backend serialises portfolio metrics, macro snapshot, and five headlines into a structured prompt and forwards it to the Colab server over an ngrok tunnel. Sentiment classification runs per headline; insight generation runs once per analyse call.',
     why: 'Quantitative metrics are necessary but not sufficient. The language model reads everything at once and surfaces patterns a ratio table cannot: concentration plus headline risk, macro regime plus factor exposure, and so on.',
-    tags: ['Llama2', 'LoRA', 'FinGPT', 'NLP', '4 bit NF4', 'Google Colab', 'ngrok'],
+    tags: ['Llama2', 'LoRA', 'Veris', 'NLP', '4 bit NF4', 'Google Colab', 'ngrok'],
   },
   holdings: {
     title: 'Holdings Detail',
@@ -832,10 +848,10 @@ const INFO = {
   },
   news: {
     title: 'News and Sentiment',
-    what: 'Recent financial headlines for each holding, deduplicated by URL fingerprint, and optionally tagged with per headline FinGPT sentiment.',
-    method: '<b>Fetch</b><br>Yahoo Finance news feed per ticker.<br><br><b>Deduplication</b><br>Every URL is normalised (lowercase host, stripped query parameters, stripped fragment, stripped trailing slash) and hashed with sha1. The first 16 hex characters form the fingerprint. Articles with duplicate fingerprints or duplicate normalised titles are skipped, so syndicated wire stories only appear once.<br><br><b>Sentiment</b><br>When the FinGPT model is online, each headline is sent to the Llama2 plus LoRA classifier and labelled positive, neutral, or negative.',
+    what: 'Recent financial headlines for each holding, deduplicated by URL fingerprint, and optionally tagged with per headline Veris sentiment.',
+    method: '<b>Fetch</b><br>Yahoo Finance news feed per ticker.<br><br><b>Deduplication</b><br>Every URL is normalised (lowercase host, stripped query parameters, stripped fragment, stripped trailing slash) and hashed with sha1. The first 16 hex characters form the fingerprint. Articles with duplicate fingerprints or duplicate normalised titles are skipped, so syndicated wire stories only appear once.<br><br><b>Sentiment</b><br>When the Veris model is online, each headline is sent to the Llama2 plus LoRA classifier and labelled positive, neutral, or negative.',
     why: 'Headline deduplication matters more than it sounds. Without it, Reuters syndicated stories show up three or four times each and crowd out other news. The URL hash approach is robust to tracking parameters like utm_source that would otherwise break naive text matching.',
-    tags: ['URL Fingerprint', 'SHA1 Dedup', 'FinGPT Sentiment', 'Yahoo Finance'],
+    tags: ['URL Fingerprint', 'SHA1 Dedup', 'Veris Sentiment', 'Yahoo Finance'],
   },
   holders: {
     title: 'Legendary Investors',
@@ -984,13 +1000,13 @@ let _session = { userId: null, portfolioId: null, username: null };
 
 function _loadSession() {
   try {
-    const s = JSON.parse(localStorage.getItem('fingpt_session'));
+    const s = JSON.parse(localStorage.getItem('veris_session'));
     if (s && s.userId) { _session = s; return true; }
   } catch {}
   return false;
 }
-function _saveSession() { localStorage.setItem('fingpt_session', JSON.stringify(_session)); }
-function _clearSession() { _session = { userId: null, portfolioId: null, username: null }; localStorage.removeItem('fingpt_session'); }
+function _saveSession() { localStorage.setItem('veris_session', JSON.stringify(_session)); }
+function _clearSession() { _session = { userId: null, portfolioId: null, username: null }; localStorage.removeItem('veris_session'); }
 function isLoggedIn() { return !!_session.userId; }
 
 // ── Auth UI ────────────────────────────────
@@ -1166,9 +1182,9 @@ async function checkHealth() {
     const dot = document.getElementById('modelStatus');
     const text = document.getElementById('modelStatusText');
     if (data.model_server === 'connected') {
-      dot.className = 'status-dot ok'; text.textContent = 'FinGPT connected';
+      dot.className = 'status-dot ok'; text.textContent = 'Veris connected';
     } else {
-      dot.className = 'status-dot off'; text.textContent = 'FinGPT offline (quant metrics still work)';
+      dot.className = 'status-dot off'; text.textContent = 'Veris offline (quant metrics still work)';
     }
   } catch { document.getElementById('modelStatus').className = 'status-dot off'; document.getElementById('modelStatusText').textContent = 'Backend unreachable'; }
 }
@@ -1317,7 +1333,7 @@ function renderResults(data) {
   // AI Insight
   const aiEl = document.getElementById('aiInsight');
   if (model_available && ai_insight) { aiEl.className = 'ai-box'; aiEl.textContent = ai_insight; }
-  else { aiEl.className = 'ai-box unavailable'; aiEl.textContent = model_available ? 'No insight generated.' : 'FinGPT model is offline. Start the Colab notebook to enable AI insights and sentiment analysis. All quantitative analytics above are fully functional without the model.'; }
+  else { aiEl.className = 'ai-box unavailable'; aiEl.textContent = model_available ? 'No insight generated.' : 'Veris model is offline. Start the Colab notebook to enable AI insights and sentiment analysis. All quantitative analytics above are fully functional without the model.'; }
 
   // Holdings table — with total return, dividends, tax, rsi label
   const tbody = document.getElementById('holdingsTable').querySelector('tbody');

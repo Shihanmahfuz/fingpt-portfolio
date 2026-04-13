@@ -1,5 +1,5 @@
 """
-app.py — FastAPI backend for FinGPT Portfolio Analyzer.
+app.py — FastAPI backend for Veris Portfolio Intelligence.
 
 Run with:  python backend/app.py
 Serves API at :8000 and frontend at http://localhost:8000
@@ -53,10 +53,10 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
 )
-logger = logging.getLogger("fingpt")
+logger = logging.getLogger("veris")
 
 # ── Init ────────────────────────────────────────────────────
-app = FastAPI(title="FinGPT Portfolio Analyzer")
+app = FastAPI(title="Veris — Portfolio Intelligence")
 
 # Initialize database on startup
 @app.on_event("startup")
@@ -1019,7 +1019,7 @@ async def serve_frontend():
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🚀 Starting FinGPT Portfolio Analyzer...")
+    print("\n  Starting Veris — Portfolio Intelligence...")
     print("   Frontend: http://localhost:8000")
     print("   API docs: http://localhost:8000/docs\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)

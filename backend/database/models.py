@@ -1,5 +1,5 @@
 """
-models.py — SQLAlchemy ORM models for FinGPT Portfolio Analyzer.
+models.py — SQLAlchemy ORM models for Veris Portfolio Intelligence.
 
 Schema design:
   - Users own Portfolios, Watchlists, and Alerts
