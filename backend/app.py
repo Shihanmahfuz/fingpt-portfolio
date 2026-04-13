@@ -5,6 +5,7 @@ Run with:  python backend/app.py
 Serves API at :8000 and frontend at http://localhost:8000
 """
 
+import hmac
 import logging
 import os
 import sys
@@ -812,10 +813,12 @@ async def admin_login(req: schemas.UserLogin, request: Request,
 @app.post("/api/db/admin/promote/{username}")
 async def promote_to_admin(username: str, admin_key: str = Query(...),
                            db: Session = Depends(get_db)):
-    """Promote a user to admin. Requires ADMIN_KEY from config/.env."""
+    """Promote a user to admin. Requires ADMIN_KEY env var (must be set in config/.env)."""
     import os
-    expected_key = os.getenv("ADMIN_KEY", "fingpt-admin-2026")
-    if admin_key != expected_key:
+    expected_key = os.getenv("ADMIN_KEY")
+    if not expected_key:
+        raise HTTPException(503, "ADMIN_KEY not configured in environment")
+    if not hmac.compare_digest(admin_key, expected_key):
         raise HTTPException(403, "Invalid admin key")
     user = crud.get_user_by_username(db, username)
     if not user:

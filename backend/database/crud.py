@@ -12,8 +12,10 @@ Design principles:
 """
 
 import hashlib
+import hmac
 import logging
 import math
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -33,8 +35,40 @@ def _utcnow():
 
 
 def _hash_password(password: str) -> str:
-    """SHA-256 password hashing. Production should use bcrypt."""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """PBKDF2-HMAC-SHA256 with random salt (160k iterations)."""
+    try:
+        import bcrypt
+        if isinstance(password, str):
+            password = password.encode()
+        return bcrypt.hashpw(password, bcrypt.gensalt()).decode()
+    except ImportError:
+        # Fallback: PBKDF2 with random salt (stdlib, no extra deps)
+        salt = os.urandom(16)
+        dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 160_000)
+        return salt.hex() + ':' + dk.hex()
+
+
+def _verify_password(password: str, stored_hash: str) -> bool:
+    """Verify password against stored hash (bcrypt or PBKDF2)."""
+    try:
+        import bcrypt
+        if isinstance(password, str):
+            password = password.encode()
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode()
+        return bcrypt.checkpw(password, stored_hash)
+    except (ImportError, ValueError):
+        pass
+    # PBKDF2 fallback
+    if ':' in stored_hash:
+        salt_hex, dk_hex = stored_hash.split(':', 1)
+        salt = bytes.fromhex(salt_hex)
+        dk = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 160_000)
+        return hmac.compare_digest(dk.hex(), dk_hex)
+    # Legacy SHA-256 (migrates on next login)
+    return hmac.compare_digest(
+        hashlib.sha256(password.encode()).hexdigest(), stored_hash
+    )
 
 
 # ══════════════════════════════════════════════════════════════
@@ -123,11 +157,14 @@ def authenticate_user(db: Session, username: str, password: str,
                        ip: Optional[str] = None) -> Optional[User]:
     """Validate credentials. Returns User on success, None on failure."""
     user = db.query(User).filter(User.username == username).first()
-    if not user or user.password_hash != _hash_password(password):
+    if not user or not _verify_password(password, user.password_hash):
         if user:
             audit_log(db, user.id, "login_failed", "user", ip_address=ip)
             db.commit()
         return None
+    # Auto-migrate legacy SHA-256 hashes to PBKDF2
+    if ':' not in user.password_hash and not user.password_hash.startswith('$2'):
+        user.password_hash = _hash_password(password)
     if not user.is_active:
         return None
     user.last_login = _utcnow()
