@@ -3,28 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FinGPT Portfolio Analyzer</title>
+<title>Veris — Portfolio Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   :root {
-    --bg: #0a0b10;
-    --surface: #13151f;
-    --surface2: #1a1d2e;
-    --border: #232640;
+    --veris-deep: #1B3A2D;
+    --veris-signal: #2DB87A;
+    --veris-mist: #8ADBB4;
+    --veris-risk: #E05252;
+    --veris-amber: #F5A623;
+    --veris-ink: #0F0F0F;
+    --veris-void: #0F1A13;
+    --veris-card-dark: #182620;
+    --veris-nav: #111A15;
+    --bg: #0F1A13;
+    --surface: #182620;
+    --surface2: #1E2E25;
+    --border: rgba(255, 255, 255, 0.10);
     --text: #e4e7f1;
     --muted: #7c809a;
-    --accent: #6366f1;
-    --accent2: #818cf8;
-    --green: #34d399;
-    --red: #f87171;
-    --yellow: #fbbf24;
-    --cyan: #22d3ee;
-    --glow: rgba(99,102,241,0.15);
+    --accent: #2DB87A;
+    --accent2: #8ADBB4;
+    --green: #2DB87A;
+    --red: #E05252;
+    --yellow: #F5A623;
+    --cyan: #8ADBB4;
+    --glow: rgba(45,184,122,0.15);
+    --fg: #e4e7f1;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica Neue, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
@@ -36,12 +46,15 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 20px 0; border-bottom: 1px solid var(--border); margin-bottom: 28px;
   }
-  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
-  header h1 span { background: linear-gradient(135deg, var(--accent), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  header h1 { font-size: 26px; font-weight: 400; letter-spacing: -0.5px; font-family: Georgia, serif; }
+  header h1 .veris-v { font-weight: 400; color: #FFFFFF; }
+  header h1 .veris-eris { opacity: 0.55; }
+  header h1 .veris-dot { display: inline-block; width: 7px; height: 7px; background: #2DB87A; border-radius: 50%; margin-left: 4px; margin-bottom: 8px; vertical-align: bottom; }
   .status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--muted); }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .status-dot.ok { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
-  .status-dot.off { background: var(--red); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-dot.ok { background: #2DB87A; }
+  .status-dot.off { background: #E05252; }
+  .status-dot.stale { background: #F5A623; }
 
   /* ── Panels ─────────────────────────────────── */
   .panel {
@@ -50,7 +63,7 @@
     transition: border-color 0.2s;
     position: relative;
   }
-  .panel:hover { border-color: rgba(99,102,241,0.25); }
+  .panel:hover { border-color: rgba(45,184,122,0.2); }
   .panel h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .panel h3 { font-size: 0.82rem; font-weight: 600; margin-bottom: 8px; color: var(--muted); }
   .section-badge {
@@ -94,7 +107,7 @@
 
   /* ── Holdings Input ─────────────────────────── */
   .holdings-grid {
-    display: grid; grid-template-columns: 2fr 1fr 1fr auto;
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto;
     gap: 8px; align-items: center; margin-bottom: 12px;
   }
   .holdings-grid label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -107,8 +120,9 @@
     padding: 9px 18px; border-radius: 8px; border: none;
     cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
   }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), #818cf8); color: white; }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+  .btn-primary { background: #2DB87A; color: #0F1A13; font-weight: 500; transition: all 180ms ease-out; }
+  .btn-primary:hover { background: #25A06A; }
+  .btn-primary:active { transform: scale(0.985); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   .btn-secondary { background: var(--border); color: var(--text); }
   .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.3); padding: 4px 10px; }
@@ -137,11 +151,17 @@
   .metric-card {
     background: var(--bg); border-radius: 10px; padding: 14px; text-align: center;
     border: 1px solid transparent; transition: border-color 0.2s;
+    border-left: 3px solid var(--veris-amber);
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
   }
-  .metric-card:hover { border-color: var(--border); }
+  .metric-card.mc-positive { border-left-color: #2DB87A; }
+  .metric-card.mc-negative { border-left-color: #E05252; }
+  .metric-card.mc-neutral { border-left-color: #F5A623; }
+  .metric-card:hover { border-color: var(--border); border-left-width: 3px; }
   .metric-card .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
-  .metric-card .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+  .metric-card .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .metric-card .sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+  .metric-card .disclosure { font-size: 10px; color: rgba(255,255,255,0.30); margin-top: 3px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .positive { color: var(--green); }
   .negative { color: var(--red); }
   .neutral { color: var(--yellow); }
@@ -149,11 +169,11 @@
   /* ── Tables ─────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   th { text-align: left; padding: 8px 6px; color: var(--muted); font-weight: 600; font-size: 0.72rem; border-bottom: 1px solid var(--border); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px; }
-  td { padding: 8px 6px; border-bottom: 1px solid rgba(35,38,64,0.5); white-space: nowrap; }
-  tr:hover td { background: rgba(99,102,241,0.03); }
+  td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+  tr:hover td { background: rgba(45,184,122,0.03); }
 
   /* ── News & AI ──────────────────────────────── */
-  .news-item { padding: 10px 0; border-bottom: 1px solid rgba(35,38,64,0.5); }
+  .news-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
   .news-item:last-child { border: none; }
   .news-title { font-weight: 500; font-size: 0.88rem; }
   .news-title a { color: var(--text); text-decoration: none; }
@@ -163,19 +183,19 @@
     display: inline-block; padding: 2px 8px; border-radius: 4px;
     font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
   }
-  .sentiment-positive { background: rgba(52,211,153,0.12); color: var(--green); }
-  .sentiment-negative { background: rgba(248,113,113,0.12); color: var(--red); }
-  .sentiment-neutral { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .sentiment-positive { background: rgba(45,184,122,0.12); color: var(--green); }
+  .sentiment-negative { background: rgba(224,82,82,0.12); color: var(--red); }
+  .sentiment-neutral { background: rgba(245,166,35,0.12); color: var(--yellow); }
   .sentiment-legend { font-size: 0.7rem; color: var(--muted); margin-bottom: 8px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-  .btn-export { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 0.72rem; padding: 5px 12px; border-radius: 6px; }
-  .btn-export:hover { border-color: var(--accent); color: var(--text); }
+  .btn-export { background: transparent; color: rgba(255,255,255,0.65); border: 0.5px solid rgba(255,255,255,0.20); font-size: 12px; padding: 5px 12px; border-radius: 6px; transition: all 120ms ease-out; }
+  .btn-export:hover { border-color: rgba(45,184,122,0.50); color: #2DB87A; }
   .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
   .header-row h2 { margin-bottom: 0; }
 
   .ai-box {
-    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(34,211,238,0.05));
-    border: 1px solid rgba(99,102,241,0.2);
+    background: rgba(45,184,122,0.06);
+    border: 1px solid rgba(45,184,122,0.15);
     border-radius: 10px; padding: 18px; font-size: 0.9rem;
     white-space: pre-wrap; line-height: 1.7;
   }
@@ -204,11 +224,11 @@
   .risk-card.warning { border-left-color: var(--yellow); }
   .risk-card.ok { border-left-color: var(--green); }
   .risk-card .risk-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
-  .risk-card .risk-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+  .risk-card .risk-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", Consolas, "Courier New", monospace; }
   .risk-card .risk-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
 
   /* ── Stress Test ────────────────────────────── */
-  .stress-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(35,38,64,0.5); align-items: center; }
+  .stress-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
   .stress-row.header { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.3px; }
   .stress-name { font-weight: 600; font-size: 0.85rem; }
   .stress-desc { font-size: 0.7rem; color: var(--muted); }
@@ -219,6 +239,199 @@
   .weight-label { width: 60px; text-align: right; font-weight: 600; }
   .weight-bar { height: 20px; border-radius: 5px; background: var(--accent); min-width: 2px; transition: width 0.6s ease; }
   .weight-pct { width: 50px; color: var(--muted); font-size: 0.72rem; }
+
+  /* ── Navigation Bar ─────────────────────────── */
+  .nav-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(17,26,21,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px; margin: 0 -24px 20px;
+    overflow-x: auto; white-space: nowrap;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+  .nav-bar::-webkit-scrollbar { height: 3px; }
+  .nav-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .nav-links { display: flex; gap: 0; min-width: max-content; }
+  .nav-link {
+    display: inline-block; padding: 10px 14px;
+    font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.38);
+    text-decoration: none; text-transform: uppercase; letter-spacing: 0.4px;
+    border-bottom: 2px solid transparent; transition: all 80ms ease-out;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .nav-link:hover { color: rgba(255,255,255,0.65); border-bottom-color: var(--accent); }
+  .nav-link.active { color: #2DB87A; border-bottom-color: #2DB87A; }
+  @media (max-width: 768px) {
+    .nav-bar { padding: 0 12px; margin: 0 -12px 16px; }
+    .nav-link { padding: 8px 10px; font-size: 0.68rem; }
+  }
+
+  /* ── Legendary Investors ────────────────────── */
+  .investor-card {
+    background: var(--bg); border-radius: 10px; padding: 14px;
+    border-left: 3px solid var(--accent); margin-bottom: 8px;
+  }
+  .investor-card .inv-name { font-weight: 700; font-size: 0.92rem; }
+  .investor-card .inv-fund { font-size: 0.78rem; color: var(--accent2); }
+  .investor-card .inv-style { font-size: 0.72rem; color: var(--muted); margin-top: 2px; font-style: italic; }
+  .investor-card .inv-detail { font-size: 0.78rem; margin-top: 6px; }
+
+  /* ── What-If Simulator ─────────────────────── */
+  .whatif-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+  .whatif-form label { font-size: 0.72rem; color: var(--muted); display: block; margin-bottom: 2px; }
+  .whatif-form input, .whatif-form select { width: 120px; }
+  .delta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+  .delta-card {
+    background: var(--bg); border-radius: 10px; padding: 12px; text-align: center;
+    border: 1px solid transparent; transition: border-color 0.2s;
+  }
+  .delta-card .d-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+  .delta-card .d-before { font-size: 0.78rem; color: var(--muted); }
+  .delta-card .d-after { font-size: 1rem; font-weight: 700; }
+  .delta-card .d-delta { font-size: 0.78rem; font-weight: 600; margin-top: 2px; }
+
+  /* ── Regime Risk ───────────────────────────── */
+  .regime-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 6px;
+    font-size: 0.82rem; font-weight: 700; text-transform: uppercase;
+  }
+  .regime-low { background: rgba(45,184,122,0.15); color: var(--green); }
+  .regime-normal { background: rgba(138,219,180,0.15); color: var(--accent2); }
+  .regime-elevated { background: rgba(245,166,35,0.15); color: var(--yellow); }
+  .regime-crisis { background: rgba(224,82,82,0.15); color: var(--red); }
+
+  /* ── Data Quality ──────────────────────────── */
+  .quality-bar { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; }
+  .quality-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .quality-good { background: var(--green); }
+  .quality-ok { background: var(--yellow); }
+  .quality-bad { background: var(--red); }
+
+  /* ── Freshness Bar ─────────────────────────── */
+  .freshness-bar {
+    background: rgba(45,184,122,0.07); border: 0.5px solid rgba(45,184,122,0.18);
+    border-radius: 8px; padding: 7px 14px; margin-top: 12px; margin-bottom: 4px;
+    font-size: 11px; color: rgba(45,184,122,0.85);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .freshness-bar.stale { background: rgba(245,166,35,0.07); border-color: rgba(245,166,35,0.18); color: rgba(245,166,35,0.85); }
+  .freshness-dot { width: 6px; height: 6px; border-radius: 50%; background: #2DB87A; flex-shrink: 0; }
+  .freshness-bar.stale .freshness-dot { background: #F5A623; }
+
+  /* ── Footer ──────────────────────────────────── */
+  .veris-footer {
+    text-align: center; padding: 32px 0 16px; font-size: 11px;
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* ── Auth Overlay ──────────────────────────── */
+  .auth-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg); z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
+    flex-direction: column;
+  }
+  .auth-overlay.hidden { display: none; }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 32px; width: 380px; max-width: 95%;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+  }
+  .auth-card h2 {
+    font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; text-align: center;
+  }
+  .auth-card h2 .veris-v { font-family: Georgia, serif; font-weight: 400; color: #FFFFFF; }
+  .auth-card h2 .veris-eris { font-family: Georgia, serif; opacity: 0.55; }
+  .auth-card h2 .veris-dot { display: inline-block; width: 7px; height: 7px; background: #2DB87A; border-radius: 50%; margin-left: 4px; margin-bottom: 4px; vertical-align: middle; }
+  .auth-card .auth-sub { text-align: center; font-size: 0.82rem; color: var(--muted); margin-bottom: 20px; }
+  .auth-card label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .auth-card input { width: 100%; }
+  .auth-card .auth-error { color: var(--red); font-size: 0.78rem; margin-top: 10px; text-align: center; min-height: 1.2em; }
+  .auth-card .btn-row { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .auth-card .btn-primary { width: 100%; padding: 12px; font-size: 0.92rem; }
+  .auth-card .btn-switch { background: none; border: none; color: var(--accent2); font-size: 0.82rem; cursor: pointer; padding: 6px; }
+  .auth-card .btn-switch:hover { text-decoration: underline; }
+  .auth-card .btn-guest { background: transparent; border: 1px solid var(--border); color: var(--muted); width: 100%; padding: 10px; font-size: 0.82rem; }
+  .auth-card .btn-guest:hover { border-color: var(--accent); color: var(--text); }
+
+  /* ── User Bar ──────────────────────────────── */
+  .user-bar {
+    display: flex; align-items: center; gap: 10px; font-size: 0.82rem;
+  }
+  .user-bar .user-name { color: var(--accent2); font-weight: 600; }
+  .user-bar .btn-logout {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 4px 12px; border-radius: 6px; font-size: 0.72rem; cursor: pointer;
+  }
+  .user-bar .btn-logout:hover { border-color: var(--red); color: var(--red); }
+  .user-bar .save-indicator { font-size: 0.7rem; color: var(--green); opacity: 0; transition: opacity 0.3s; }
+  .user-bar .save-indicator.show { opacity: 1; }
+
+  /* ── Admin Panel ───────────────────────────── */
+  .admin-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 1500; backdrop-filter: blur(6px);
+    display: none; justify-content: center; align-items: flex-start;
+    padding: 40px 20px; overflow-y: auto;
+  }
+  .admin-overlay.active { display: flex; }
+  .admin-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 1100px; max-width: 98%;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  }
+  .admin-panel h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .admin-panel h2 span.admin-badge {
+    background: var(--veris-deep);
+    color: white; font-size: 0.62rem; padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+  }
+  .admin-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .admin-tab {
+    background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+    padding: 6px 16px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: 600;
+  }
+  .admin-tab.active { background: #2DB87A; color: #0F1A13; border-color: #2DB87A; }
+  .admin-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .admin-stat {
+    background: var(--bg); border-radius: 8px; padding: 12px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .admin-stat .a-label { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .admin-stat .a-value { font-size: 1.3rem; font-weight: 700; margin-top: 2px; color: var(--accent2); }
+  .admin-table-wrap { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  .admin-table-wrap table { width: 100%; }
+  .admin-table-wrap th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .admin-login-gate {
+    text-align: center; padding: 40px 20px;
+  }
+  .admin-login-gate h3 { font-size: 1rem; margin-bottom: 6px; color: var(--fg); }
+  .admin-login-gate p { font-size: 0.78rem; color: var(--muted); margin-bottom: 20px; }
+  .admin-login-gate input {
+    display: block; width: 280px; margin: 8px auto; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--fg); font-size: 0.85rem;
+  }
+  .admin-login-gate input:focus { border-color: var(--accent); outline: none; }
+  .admin-login-gate .admin-login-btn {
+    margin-top: 16px; padding: 10px 32px; background: var(--veris-signal);
+    color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .admin-login-gate .admin-login-btn:hover { opacity: 0.9; }
+  .admin-login-gate .admin-error {
+    color: var(--red); font-size: 0.78rem; margin-top: 10px; min-height: 1.2em;
+  }
+  .admin-close {
+    float: right; background: transparent; border: 1px solid var(--border);
+    color: var(--muted); padding: 4px 12px; border-radius: 6px; font-size: 0.78rem; cursor: pointer;
+  }
+  .admin-close:hover { border-color: var(--red); color: var(--red); }
+  .admin-refresh {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--accent2); padding: 4px 12px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; margin-left: 8px;
+  }
+  .admin-refresh:hover { border-color: var(--accent); }
 
   /* ── Candlestick panel ──────────────────────── */
   .candle-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -236,12 +449,94 @@
   <div class="info-modal" id="infoModal"></div>
 </div>
 
+<!-- Admin Panel Overlay -->
+<div class="admin-overlay" id="adminOverlay" onclick="if(event.target===this)closeAdmin()">
+  <div class="admin-panel">
+    <button class="admin-close" onclick="closeAdmin()">Close</button>
+    <!-- Admin Login Gate -->
+    <div id="adminLoginGate" class="admin-login-gate">
+      <h3>Veris Admin</h3>
+      <p>Enter admin credentials to access the Veris database</p>
+      <input type="text" id="adminUsername" placeholder="Username" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <input type="password" id="adminPassword" placeholder="Password" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <button class="admin-login-btn" onclick="doAdminLogin()">Sign In as Admin</button>
+      <div class="admin-error" id="adminLoginError"></div>
+    </div>
+    <!-- Admin Dashboard (hidden until authenticated) -->
+    <div id="adminDashboard" style="display:none">
+      <h2><span class="section-badge"></span> Database Admin <span class="admin-badge">Admin</span>
+        <button class="admin-refresh" onclick="loadAdminData()">Refresh</button>
+      </h2>
+      <div id="adminStats" class="admin-stat-grid"></div>
+      <div class="admin-tabs" id="adminTabs">
+        <div class="admin-tab active" onclick="switchAdminTab('users')">Users</div>
+        <div class="admin-tab" onclick="switchAdminTab('portfolios')">Portfolios</div>
+        <div class="admin-tab" onclick="switchAdminTab('holdings')">Holdings</div>
+        <div class="admin-tab" onclick="switchAdminTab('snapshots')">Snapshots</div>
+        <div class="admin-tab" onclick="switchAdminTab('trades')">Trades</div>
+        <div class="admin-tab" onclick="switchAdminTab('watchlist')">Watchlist</div>
+        <div class="admin-tab" onclick="switchAdminTab('alerts')">Alerts</div>
+        <div class="admin-tab" onclick="switchAdminTab('audit')">Audit Log</div>
+      </div>
+      <div id="adminContent" class="admin-table-wrap">
+        <p style="color:var(--muted)">Loading...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card" id="authCard">
+    <!-- Login Form -->
+    <div id="loginForm">
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span></h2>
+      <div class="auth-sub">Your portfolio. The truth.</div>
+      <label>Username</label>
+      <input id="loginUsername" placeholder="Enter username" onkeydown="if(event.key==='Enter')doLogin()">
+      <label>Password</label>
+      <input id="loginPassword" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="auth-error" id="loginError"></div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="doLogin()">Sign In</button>
+        <button class="btn-switch" onclick="showRegister()">No account? Create one</button>
+        <button class="btn-guest" onclick="enterGuest()">Continue as Guest</button>
+      </div>
+    </div>
+    <!-- Register Form -->
+    <div id="registerForm" style="display:none">
+      <h2><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span> Create Account</h2>
+      <div class="auth-sub">Your portfolio will be saved and verified</div>
+      <label>Username</label>
+      <input id="regUsername" placeholder="Choose a username" onkeydown="if(event.key==='Enter')doRegister()">
+      <label>Email</label>
+      <input id="regEmail" type="email" placeholder="your@email.com">
+      <label>Password</label>
+      <input id="regPassword" type="password" placeholder="Min 8 characters" onkeydown="if(event.key==='Enter')doRegister()">
+      <div class="auth-error" id="regError"></div>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="doRegister()">Create Account</button>
+        <button class="btn-switch" onclick="showLogin()">Already have an account? Sign in</button>
+        <button class="btn-guest" onclick="enterGuest()">Continue as Guest</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <header>
-    <h1><span>FinGPT</span> Portfolio Analyzer</h1>
-    <div class="status">
-      <div class="status-dot" id="modelStatus"></div>
-      <span id="modelStatusText">Checking model...</span>
+    <h1><span class="veris-v">V</span><span class="veris-eris">eris</span><span class="veris-dot"></span></h1>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="user-bar" id="userBar" style="display:none">
+        <span class="save-indicator" id="saveIndicator">Saved</span>
+        <span class="user-name" id="userDisplayName"></span>
+        <button class="admin-refresh" onclick="openAdmin()" style="font-size:0.72rem">Admin</button>
+        <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+      </div>
+      <div class="status">
+        <div class="status-dot" id="modelStatus"></div>
+        <span id="modelStatusText">Checking model...</span>
+      </div>
     </div>
   </header>
 
@@ -249,9 +544,9 @@
   <div class="panel">
     <h2><span class="section-badge"></span> Your Portfolio <span class="info-btn" onclick="showInfo('portfolio')">i</span></h2>
     <div id="holdingsContainer"></div>
-    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px">Supports stocks (AAPL, MSFT) and crypto (BTC, ETH, SOL)</div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px">Supports stocks like AAPL or MSFT and crypto tickers like BTC, ETH, SOL. Dividends per share is optional and used for total return and tax computations.</div>
     <div class="btn-row">
-      <button class="btn-secondary" onclick="addHolding()">+ Add Stock</button>
+      <button class="btn-secondary" onclick="addHolding()">Add Stock</button>
       <button class="btn-primary" id="analyzeBtn" onclick="analyzePortfolio()">Analyze Portfolio</button>
     </div>
   </div>
@@ -259,24 +554,33 @@
   <!-- Results -->
   <div id="results" style="display:none">
 
+    <!-- Navigation Bar -->
+    <nav class="nav-bar" id="navBar">
+      <div class="nav-links" id="navLinks"></div>
+    </nav>
+
     <div id="warningsBanner" class="warnings-banner" style="display:none"></div>
 
     <!-- Summary -->
-    <div class="panel full-width">
+    <div class="panel full-width" id="sectionSummary">
       <h2><span class="section-badge"></span> Portfolio Summary <span class="info-btn" onclick="showInfo('summary')">i</span></h2>
       <div class="summary-grid" id="summaryGrid"></div>
+      <div class="freshness-bar" id="freshnessBar" style="display:none">
+        <span class="freshness-dot"></span>
+        <span id="freshnessText"></span>
+      </div>
     </div>
 
     <div class="dashboard">
 
-      <!-- AI Insight (moved up!) -->
-      <div class="panel full-width" id="aiPanel">
-        <h2><span class="section-badge"></span> AI Insight (FinGPT) <span class="info-btn" onclick="showInfo('ai')">i</span></h2>
+      <!-- AI Insight -->
+      <div class="panel full-width" id="sectionAI">
+        <h2><span class="section-badge"></span> AI Insight (Veris) <span class="info-btn" onclick="showInfo('ai')">i</span></h2>
         <div id="aiInsight" class="ai-box unavailable">Start the Colab notebook to enable AI insights.</div>
       </div>
 
       <!-- Holdings Detail -->
-      <div class="panel full-width">
+      <div class="panel full-width" id="sectionHoldings">
         <div class="header-row">
           <h2><span class="section-badge"></span> Holdings Detail <span class="info-btn" onclick="showInfo('holdings')">i</span></h2>
           <div style="display:flex;gap:6px">
@@ -288,9 +592,10 @@
           <table id="holdingsTable">
             <thead><tr>
               <th>Symbol</th><th>Price</th><th>Value</th>
-              <th>Gain/Loss</th><th>Vol</th><th>Sharpe</th><th>Sortino</th>
+              <th>Price Ret</th><th>Total Ret</th><th>Divs</th>
+              <th>Vol</th><th>Sharpe</th><th>Sortino</th>
               <th>Beta</th><th>Alpha</th><th>Max DD</th>
-              <th>SMA 20</th><th>SMA 50</th><th>RSI 14</th>
+              <th>SMA 20</th><th>SMA 50</th><th>RSI 14</th><th>Tax</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -298,16 +603,16 @@
       </div>
 
       <!-- Candlestick Charts -->
-      <div class="panel full-width" id="candlePanel" style="display:none">
+      <div class="panel full-width" id="candlePanel" data-section="sectionCharts" style="display:none">
         <h2><span class="section-badge"></span> Price Charts <span class="info-btn" onclick="showInfo('candle')">i</span></h2>
         <div class="candle-tabs" id="candleTabs"></div>
         <div id="candleChart" class="plotly-chart"></div>
       </div>
 
       <!-- Monte Carlo -->
-      <div class="panel full-width" id="monteCarloPanel" style="display:none">
+      <div class="panel full-width" id="monteCarloPanel" data-section="sectionRisk" style="display:none">
         <h2><span class="section-badge"></span> Risk Analysis — Monte Carlo VaR <span class="info-btn" onclick="showInfo('montecarlo')">i</span></h2>
-        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">10,000 simulated 30-day portfolio paths using historical return distributions</p>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">10,000 simulated 30 day portfolio paths drawn from a fitted Student t distribution with full covariance via Cholesky decomposition.</p>
         <div class="risk-grid" id="varCards"></div>
         <div class="mc-charts">
           <div>
@@ -322,162 +627,295 @@
       </div>
 
       <!-- Efficient Frontier -->
-      <div class="panel" id="frontierPanel" style="display:none">
+      <div class="panel" id="frontierPanel" data-section="sectionFrontier" style="display:none">
         <h2><span class="section-badge"></span> Efficient Frontier <span class="info-btn" onclick="showInfo('frontier')">i</span></h2>
-        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Markowitz mean-variance optimization</p>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Markowitz mean variance optimisation with Ledoit Wolf shrinkage and Black Litterman priors. Box constraints between 5 and 60 percent per name.</p>
         <div id="frontierChart" class="plotly-chart"></div>
         <div id="frontierWeights" style="margin-top:12px"></div>
       </div>
 
       <!-- Correlation -->
-      <div class="panel" id="corrPanel" style="display:none">
+      <div class="panel" id="corrPanel" data-section="sectionCorrelation" style="display:none">
         <h2><span class="section-badge"></span> Correlation Matrix <span class="info-btn" onclick="showInfo('correlation')">i</span></h2>
         <p style="font-size:0.72rem;color:var(--muted);margin-bottom:4px" id="corrInterpretation"></p>
         <div id="corrHeatmap" class="plotly-chart"></div>
       </div>
 
       <!-- Stress Testing -->
-      <div class="panel full-width" id="stressPanel" style="display:none">
+      <div class="panel full-width" id="stressPanel" data-section="sectionStress" style="display:none">
         <h2><span class="section-badge"></span> Stress Testing <span class="info-btn" onclick="showInfo('stress')">i</span></h2>
-        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Beta-adjusted estimated losses under historical market crises</p>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Beta adjusted estimated losses under historical market crises, using the canonical 252 day OLS beta against SPY.</p>
         <div id="stressResults"></div>
+        <div id="reverseStressBox" style="margin-top:16px"></div>
+      </div>
+
+      <!-- Factor Attribution -->
+      <div class="panel full-width" id="factorPanel" data-section="sectionFactor" style="display:none">
+        <h2><span class="section-badge"></span> Factor Attribution <span class="info-btn" onclick="showInfo('factor')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Single factor CAPM decomposition of portfolio return into market beta component and alpha (idiosyncratic skill).</p>
+        <div id="factorAttribution"></div>
+      </div>
+
+      <!-- Tariff Exposure -->
+      <div class="panel" id="tariffPanel" data-section="sectionTariff" style="display:none">
+        <h2><span class="section-badge"></span> Tariff Exposure <span class="info-btn" onclick="showInfo('tariff')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Estimated portfolio drag from a tariff shock on AAPL China cost of goods sold, under a constant P over E translation.</p>
+        <div id="tariffBox"></div>
+      </div>
+
+      <!-- Tax Liability -->
+      <div class="panel" id="taxPanel" data-section="sectionTax" style="display:none">
+        <h2><span class="section-badge"></span> Tax Liability <span class="info-btn" onclick="showInfo('tax')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Estimated long term capital gains tax on each position, plus harvestable losses, at the top marginal rate of 23.8 percent (20 percent federal plus 3.8 percent NIIT).</p>
+        <div id="taxBox"></div>
       </div>
 
       <!-- Options -->
-      <div class="panel full-width" id="optionsPanel" style="display:none">
+      <div class="panel full-width" id="optionsPanel" data-section="sectionOptions" style="display:none">
         <div class="header-row">
-          <h2><span class="section-badge"></span> Options Chain <span class="info-btn" onclick="showInfo('options')">i</span></h2>
+          <h2><span class="section-badge"></span> Options Chain with Greeks <span class="info-btn" onclick="showInfo('options')">i</span></h2>
           <div style="display:flex;gap:8px;align-items:center">
             <select id="optionsSymbol" onchange="onOptionsSymbolChange()"></select>
             <select id="optionsExpiry" onchange="fetchOptions()"></select>
           </div>
         </div>
+        <div id="optionsSummary" style="margin-bottom:12px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div><h3 style="color:var(--green)">Calls</h3><div style="overflow-x:auto;max-height:300px;overflow-y:auto"><table id="callsTable"><thead><tr><th>Strike</th><th>Last</th><th>Bid</th><th>Ask</th><th>IV</th><th>Vol</th><th>OI</th></tr></thead><tbody></tbody></table></div></div>
-          <div><h3 style="color:var(--red)">Puts</h3><div style="overflow-x:auto;max-height:300px;overflow-y:auto"><table id="putsTable"><thead><tr><th>Strike</th><th>Last</th><th>Bid</th><th>Ask</th><th>IV</th><th>Vol</th><th>OI</th></tr></thead><tbody></tbody></table></div></div>
+          <div><h3 style="color:var(--green)">Calls</h3><div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table id="callsTable"><thead><tr><th>Strike</th><th>Last</th><th>Bid</th><th>Ask</th><th>IV</th><th>Delta</th><th>Gamma</th><th>Theta</th><th>Vega</th><th>Vol</th><th>OI</th></tr></thead><tbody></tbody></table></div></div>
+          <div><h3 style="color:var(--red)">Puts</h3><div style="overflow-x:auto;max-height:340px;overflow-y:auto"><table id="putsTable"><thead><tr><th>Strike</th><th>Last</th><th>Bid</th><th>Ask</th><th>IV</th><th>Delta</th><th>Gamma</th><th>Theta</th><th>Vega</th><th>Vol</th><th>OI</th></tr></thead><tbody></tbody></table></div></div>
         </div>
       </div>
 
       <!-- Allocation -->
-      <div class="panel">
+      <div class="panel" id="sectionAllocation">
         <h2><span class="section-badge"></span> Allocation <span class="info-btn" onclick="showInfo('allocation')">i</span></h2>
         <div class="chart-container"><canvas id="allocationChart"></canvas></div>
       </div>
 
       <!-- Macro -->
-      <div class="panel">
+      <div class="panel" id="sectionMacro">
         <h2><span class="section-badge"></span> Macro Environment <span class="info-btn" onclick="showInfo('macro')">i</span></h2>
         <div id="macroContainer"></div>
       </div>
 
       <!-- News -->
-      <div class="panel full-width">
+      <div class="panel full-width" id="sectionNews">
         <h2><span class="section-badge"></span> News &amp; Sentiment <span class="info-btn" onclick="showInfo('news')">i</span></h2>
         <div id="sentimentLegend" class="sentiment-legend" style="display:none">
           <span class="sentiment-badge sentiment-positive">positive</span> Bullish
           <span class="sentiment-badge sentiment-neutral">neutral</span> No signal
           <span class="sentiment-badge sentiment-negative">negative</span> Bearish
-          <span style="color:var(--muted)">(via FinGPT)</span>
+          <span style="color:var(--muted)">(via Veris)</span>
         </div>
         <div id="newsContainer"></div>
       </div>
+
+      <!-- Legendary Investors -->
+      <div class="panel full-width" id="holdersPanel" data-section="sectionHolders">
+        <h2><span class="section-badge"></span> Legendary Investors <span class="info-btn" onclick="showInfo('holders')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Which of the world's top investors hold the same stocks as you, based on the latest SEC 13F filings. Search any ticker below.</p>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
+          <div><label style="font-size:0.72rem;color:var(--muted);display:block;margin-bottom:2px">Add ticker</label><input id="holdersSearch" placeholder="e.g. NVDA, AMZN" style="width:180px" onkeydown="if(event.key==='Enter')addHolderTicker()"></div>
+          <button class="btn-primary" onclick="addHolderTicker()" style="height:36px">Look Up</button>
+          <div id="holdersTags" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+        </div>
+        <div id="holdersResults"><p style="color:var(--muted)">Analyze your portfolio or search a ticker above to see institutional holders.</p></div>
+      </div>
+
+      <!-- What-If Trade Simulator -->
+      <div class="panel full-width" id="whatifPanel" data-section="sectionWhatIf">
+        <h2><span class="section-badge"></span> What-If Trade Simulator <span class="info-btn" onclick="showInfo('whatif')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Simulate adding or removing a position and see how key portfolio metrics would change before you trade.</p>
+        <div class="whatif-form" id="whatifForm">
+          <div><label>Symbol</label><input id="whatifSymbol" placeholder="NVDA" style="width:90px"></div>
+          <div><label>Shares</label><input id="whatifShares" type="number" value="10" min="1" style="width:80px"></div>
+          <div><label>Action</label><select id="whatifAction"><option value="buy">Buy</option><option value="sell">Sell</option></select></div>
+          <div><button class="btn-primary" onclick="runWhatIf()" style="margin-top:18px">Simulate</button></div>
+        </div>
+        <div id="whatifResults"></div>
+      </div>
+
+      <!-- Regime-Aware Risk Engine -->
+      <div class="panel full-width" id="regimePanel" data-section="sectionRegime" style="display:none">
+        <h2><span class="section-badge"></span> Regime Aware Risk Engine <span class="info-btn" onclick="showInfo('regime')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Rolling 21 day realised volatility classifies the market regime and adjusts VaR estimates accordingly.</p>
+        <div id="regimeResults"></div>
+        <div id="regimeChart" class="plotly-chart" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Event-Risk Calendar -->
+      <div class="panel full-width" id="eventsPanel" data-section="sectionEvents" style="display:none">
+        <h2><span class="section-badge"></span> Event Risk Calendar <span class="info-btn" onclick="showInfo('events')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Upcoming earnings dates with historical earnings day return distributions and event VaR.</p>
+        <div id="eventsResults"></div>
+      </div>
+
+      <!-- Data Quality Dashboard -->
+      <div class="panel full-width" id="qualityPanel" data-section="sectionQuality" style="display:none">
+        <h2><span class="section-badge"></span> Data Quality Dashboard <span class="info-btn" onclick="showInfo('quality')">i</span></h2>
+        <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px">Per ticker data completeness, freshness, zero volume days, and gap detection.</p>
+        <div id="qualityResults"></div>
+      </div>
+
     </div>
   </div>
+
+  <div class="veris-footer">Veris · Decision-support information only · Not investment advice · veris.finance</div>
 </div>
 
 <script>
 // ── Info Content Database ─────────────────────────────────
+// Every entry documents the exact inputs, the step by step computation,
+// the units, and the interpretation so that a user can understand where
+// every number on the dashboard comes from. No hyphens or quotes in the
+// copy: punctuation is kept simple so screen readers and exports read well.
 const INFO = {
   portfolio: {
     title: 'Your Portfolio',
-    what: 'Enter the stocks or crypto you own. For each holding, specify the ticker symbol, number of shares, and the average price you paid.',
-    method: 'Symbols are resolved via Yahoo Finance (yfinance). Crypto shorthand like BTC is auto-mapped to BTC-USD.',
-    why: 'This is the starting point for all analysis. Accurate input data ensures meaningful portfolio metrics.',
-    tags: ['yfinance', 'Portfolio Input', 'Stocks', 'Crypto'],
+    what: 'Enter the tickers you own together with shares, average cost, and optionally the cumulative dividends per share received since you bought the position. Dividends feed into the total return and tax liability panels.',
+    method: '<b>Inputs</b><br>Symbol (resolved to a Yahoo Finance ticker, so BTC becomes BTC USD), shares (units held), avg cost (dollar price per share when purchased), dividends per share (optional, in dollars).<br><br><b>Normalisation</b><br>Crypto shorthand is mapped via a fixed dictionary. Symbols are upper cased and trimmed.',
+    why: 'The entire analytics pipeline uses these inputs. Cost basis feeds gain loss, dividends feed total return and after tax return, shares times spot price gives the weight vector used in covariance and optimisation math.',
+    tags: ['yfinance', 'Portfolio Input', 'Cost Basis', 'Dividends'],
   },
   summary: {
     title: 'Portfolio Summary',
-    what: 'A snapshot of your portfolio\'s key performance and risk metrics, including total value, gain/loss, volatility, Sharpe ratio, Sortino ratio, Beta, Alpha, and diversification score.',
-    method: '<b>Volatility</b>: Annualized standard deviation of daily returns (&sigma; &times; &radic;252).<br><b>Sharpe Ratio</b>: (Mean excess return / Std dev) &times; &radic;252 — measures risk-adjusted return.<br><b>Sortino</b>: Like Sharpe but only penalizes downside volatility — better for asymmetric returns.<br><b>Beta</b>: Covariance(portfolio, SPY) / Variance(SPY) — sensitivity to market moves.<br><b>Alpha</b>: Jensen\'s Alpha — excess return beyond what beta predicts. Positive = outperforming.',
-    why: 'These are the same metrics used by institutional investors and hedge funds. Sharpe tells you if your returns justify the risk. Beta tells you how much market exposure you have. Alpha tells you if you\'re actually generating skill-based returns.',
-    tags: ['Sharpe Ratio', 'Sortino', 'Beta', 'Alpha', 'Modern Portfolio Theory'],
+    what: 'Top line performance and risk metrics computed across your entire portfolio: total value, total return (dividend adjusted), annualised volatility, risk adjusted ratios, market exposure, and concentration metrics.',
+    method: '<b>Returns</b><br>All statistics run on daily log returns r_t equal to ln(P_t over P_{t minus 1}). Annualised geometric return R equals exp(mean_log_return times 252) minus 1.<br><br><b>Volatility</b><br>Full covariance formulation: sigma_p equals sqrt(w^T times Sigma times w), where Sigma is the 252 day annualised covariance matrix of log returns (not the diagonal only approximation that ignores correlation).<br><br><b>Sharpe</b><br>(R_p minus R_f) over sigma_p, with R_f taken from the live 10 year treasury.<br><br><b>Sortino</b><br>(R_p minus R_f) over the downside deviation, where only returns below the MAR (minimum acceptable return equal to R_f per day) are squared.<br><br><b>Treynor</b><br>(R_p minus R_f) over portfolio beta. Rewards skill relative to systematic risk only.<br><br><b>Information Ratio</b><br>Annualised mean active return (portfolio minus benchmark) over the tracking error.<br><br><b>Beta</b><br>Weighted sum of holding betas. Each holding beta is the OLS slope of its log returns regressed on SPY log returns over the trailing 252 days. This is the single canonical source of beta used everywhere in the system.<br><br><b>Jensen Alpha</b><br>R_p minus (R_f plus beta times (R_m minus R_f)).<br><br><b>HHI</b><br>Herfindahl Hirschman Index: sum of squared weights. 1 over n means perfectly diversified, 1 means fully concentrated.<br><br><b>Effective N</b><br>1 over HHI. Interpret as the effective number of independent positions.<br><br><b>Diversification Ratio</b><br>sum(w_i times sigma_i) over sigma_portfolio. Greater than 1 means correlations are helping you.',
+    why: 'These are the metrics used by institutional risk books. Sharpe by itself can mislead when returns are asymmetric, so we show Sortino alongside. HHI and Effective N catch concentration that a simple weight table hides. Treynor and Information Ratio separate skill from luck.',
+    tags: ['Sharpe', 'Sortino', 'Treynor', 'Information Ratio', 'HHI', 'Diversification Ratio', 'Jensen Alpha', '252d OLS Beta'],
   },
   ai: {
-    title: 'AI Insight (FinGPT)',
-    what: 'Natural language portfolio commentary generated by a fine-tuned Large Language Model. It reads your portfolio metrics, macro data, and recent news to produce a risk assessment.',
-    method: '<b>Model</b>: Meta Llama2-7B-chat fine-tuned with FinGPT LoRA adapter.<br><b>Quantization</b>: 4-bit NF4 to fit on a free Google Colab T4 GPU (~3.5GB VRAM).<br><b>Tasks</b>: Sentiment analysis (per headline), headline classification, and portfolio insight generation.',
-    why: 'Combines quantitative metrics with qualitative AI reasoning. This bridges the gap between raw numbers and actionable investment commentary — something traditional tools can\'t do.',
-    tags: ['Llama2', 'LoRA', 'FinGPT', 'NLP', 'Sentiment Analysis', 'Google Colab'],
+    title: 'AI Insight (Veris)',
+    what: 'A natural language commentary on the portfolio generated by a fine tuned large language model. It reads the numeric metrics, macro context, and recent headlines and produces a concise risk assessment.',
+    method: '<b>Model</b><br>Meta Llama 2 7B chat, fine tuned with the Veris LoRA adapter.<br><br><b>Quantisation</b><br>4 bit NF4 so that the weights fit on a free Google Colab T4 GPU (about 3.5 GB VRAM).<br><br><b>Pipeline</b><br>The backend serialises portfolio metrics, macro snapshot, and five headlines into a structured prompt and forwards it to the Colab server over an ngrok tunnel. Sentiment classification runs per headline; insight generation runs once per analyse call.',
+    why: 'Quantitative metrics are necessary but not sufficient. The language model reads everything at once and surfaces patterns a ratio table cannot: concentration plus headline risk, macro regime plus factor exposure, and so on.',
+    tags: ['Llama2', 'LoRA', 'Veris', 'NLP', '4 bit NF4', 'Google Colab', 'ngrok'],
   },
   holdings: {
     title: 'Holdings Detail',
-    what: 'Detailed per-stock breakdown showing price, value, gain/loss, volatility, Sharpe, Sortino, Beta, Alpha, max drawdown, moving averages, and RSI.',
-    method: '<b>Max Drawdown</b>: Largest peak-to-trough decline — measures worst-case historical loss.<br><b>SMA 20/50</b>: Simple Moving Average — price smoothing over 20 and 50 days. Crossovers signal trends.<br><b>RSI 14</b>: Relative Strength Index — momentum oscillator (0-100). Below 30 = oversold, above 70 = overbought.<br><b>Treynor Ratio</b>: Excess return per unit of systematic (beta) risk.',
-    why: 'Per-holding metrics reveal which positions drive your portfolio\'s risk and return. Max drawdown shows the worst historical pain. RSI signals potential entry/exit points.',
-    tags: ['Technical Analysis', 'RSI', 'SMA', 'Max Drawdown', 'Treynor'],
+    what: 'Per position breakdown with price, value, price only and total (dividend inclusive) returns, risk statistics, CAPM measures, technicals, and estimated long term capital gains tax.',
+    method: '<b>Price Return</b><br>(current price minus avg cost) over avg cost.<br><br><b>Total Return</b><br>price return plus dividends received divided by cost basis.<br><br><b>Volatility</b><br>Annualised standard deviation of daily log returns, Bessel corrected (ddof equal to 1).<br><br><b>Sharpe and Sortino</b><br>Same formulas as the portfolio level, but on the holding return series.<br><br><b>Beta</b><br>OLS regression of holding log returns on SPY log returns over the trailing 252 days. None if less than 30 days of history.<br><br><b>Jensen Alpha</b><br>R_i minus (R_f plus beta_i times (R_m minus R_f)).<br><br><b>Max Drawdown</b><br>max over t of (running peak minus price_t) over running peak, scanned across the entire price history (not a windowed view).<br><br><b>SMA 20 and 50</b><br>Simple moving averages of the most recent 20 and 50 closes.<br><br><b>RSI 14</b><br>Wilder smoothed Relative Strength Index. Seeded with the simple mean of the first 14 deltas, then smoothed with avg_t equal to (avg_{t minus 1} times 13 plus value_t) over 14. Labels are extreme oversold at 20 or below, oversold below 30, overbought above 70, extreme overbought at 80 or above.<br><br><b>Tax</b><br>Long term capital gains at 23.8 percent (20 percent federal plus 3.8 percent NIIT). Losses become harvestable and show the tax benefit.',
+    why: 'Portfolio level numbers hide which single position is dragging on the rest. This table lets you sort by any column, spot oversold entries with the RSI label, and see exactly which position owes the most tax if liquidated.',
+    tags: ['Log Returns', 'Bessel Corrected', 'OLS Beta', 'Wilder RSI', 'LTCG', 'Dividend Adjusted Return'],
   },
   candle: {
     title: 'Price Charts',
-    what: 'Interactive candlestick charts showing Open-High-Low-Close (OHLC) price data for each holding, with SMA-20 and SMA-50 overlays and volume bars.',
-    method: '<b>Candlesticks</b>: Green = close > open (bullish day), Red = close < open (bearish). Wicks show intraday range.<br><b>Moving Averages</b>: SMA-20 (short-term trend) and SMA-50 (medium-term). When SMA-20 crosses above SMA-50, it\'s a "golden cross" — bullish signal.',
-    why: 'Candlestick charts are the standard visualization on Bloomberg terminals and professional trading platforms. They reveal price patterns, trends, and momentum that tables alone cannot show.',
-    tags: ['OHLC', 'Candlestick', 'Moving Averages', 'Golden Cross', 'Volume', 'Plotly.js'],
+    what: 'Interactive candlestick chart for each holding with SMA 20 and SMA 50 overlays. Hover to see OHLC values and the moving averages at a given date.',
+    method: '<b>Candlestick</b><br>Each bar encodes open, high, low, close for one trading day. Green means close greater than open, red means close below open, wicks show the intraday range.<br><br><b>SMA 20 and SMA 50</b><br>Rolling simple averages of the close price over the trailing 20 and 50 bars. A bullish golden cross occurs when the 20 crosses above the 50.',
+    why: 'Tables of numbers compress out a lot of information. A candlestick immediately shows whether a move is trending or mean reverting, whether volume is confirming, and how far price has travelled relative to its moving average anchors.',
+    tags: ['OHLC', 'Candlestick', 'SMA 20', 'SMA 50', 'Plotly'],
   },
   montecarlo: {
-    title: 'Monte Carlo Value at Risk (VaR)',
-    what: 'Simulates 10,000 possible 30-day futures for your portfolio using random sampling from historical return distributions. Calculates VaR and CVaR (Expected Shortfall).',
-    method: '<b>Monte Carlo</b>: Draws random daily returns from a multivariate normal distribution fitted to your holdings\' historical returns and correlations.<br><b>VaR (95%)</b>: "In 95% of scenarios, losses won\'t exceed this." The 5th percentile of simulated returns.<br><b>CVaR / Expected Shortfall</b>: Average loss in the worst 5% of scenarios — captures tail risk better than VaR.',
-    why: 'VaR is the industry-standard risk metric used by every major bank and hedge fund (required by Basel III regulations). CVaR goes further by asking "when things go wrong, how bad does it get?" — crucial for understanding tail risk.',
-    tags: ['Monte Carlo', 'VaR', 'CVaR', 'Expected Shortfall', 'Basel III', 'Risk Management', 'scipy'],
+    title: 'Monte Carlo VaR',
+    what: 'Runs 10,000 simulated 30 day portfolio paths to estimate Value at Risk and Conditional VaR. Returns a histogram of ending returns and a fan chart of the percentile paths.',
+    method: '<b>Step 1 build return matrix</b><br>Align the daily log returns for every holding to a common length.<br><br><b>Step 2 estimate moments</b><br>Compute the mean vector mu and the full daily covariance matrix Sigma (Bessel corrected). Fit a Student t degrees of freedom to each marginal return series by maximum likelihood and take the conservative minimum nu.<br><br><b>Step 3 Cholesky</b><br>L equal to cholesky(Sigma plus 1e minus 10 times I) produces the lower triangular factor so that correlated draws can be generated as epsilon equal to L times z.<br><br><b>Step 4 draws</b><br>For each of 10,000 simulations and each of 30 days, sample an iid Student t vector z with nu degrees of freedom, rescale by sqrt((nu minus 2) over nu) so the resulting covariance matches Sigma, and apply L.<br><br><b>Step 5 portfolio returns</b><br>Portfolio daily log return equals the dot product of the weight vector with the simulated daily returns. Cumulative return is the sum of the 30 daily logs, then converted to a simple return via exp minus 1.<br><br><b>VaR 95</b><br>The 5th percentile of the ending return distribution.<br><br><b>CVaR 95</b><br>The mean of returns below the 5th percentile. CVaR is always at least as bad as VaR.',
+    why: 'VaR is the Basel III regulatory standard. But VaR alone misses how bad the worst case gets, which is why every serious desk reports CVaR alongside it. The Student t marginal distribution captures fat tails that a Gaussian assumption misses, and the Cholesky step preserves correlation structure so that diversification benefits are modelled correctly.',
+    tags: ['Monte Carlo', 'VaR', 'CVaR', 'Cholesky', 'Student t', 'Basel III', 'Tail Risk', '10000 simulations'],
   },
   frontier: {
-    title: 'Efficient Frontier (Markowitz)',
-    what: 'Shows the set of optimal portfolios that offer the highest expected return for each level of risk. Plots your current allocation against the mathematically optimal portfolios.',
-    method: '<b>Mean-Variance Optimization</b>: Uses PyPortfolioOpt to solve the Markowitz (1952) optimization problem.<br><b>Max Sharpe Portfolio</b>: The tangency portfolio — highest risk-adjusted return on the frontier.<br><b>Min Volatility Portfolio</b>: Lowest possible risk regardless of return.<br>The frontier curve is generated by sweeping target returns and solving for minimum variance at each.',
-    why: 'Harry Markowitz won the Nobel Prize (1990) for this. It\'s the foundation of Modern Portfolio Theory. Seeing where your portfolio sits vs. the frontier instantly shows if you\'re taking unnecessary risk — and exactly how to rebalance.',
-    tags: ['Markowitz', 'MPT', 'Nobel Prize', 'PyPortfolioOpt', 'cvxpy', 'Optimization'],
+    title: 'Efficient Frontier',
+    what: 'Plots the set of portfolios that maximise expected return at each level of risk. Shows your current position, the max Sharpe portfolio, and the minimum volatility portfolio.',
+    method: '<b>Covariance</b><br>Ledoit Wolf shrunk covariance. Pulls the sample covariance toward a structured target (constant correlation), which fixes the instability problem that pure sample covariance has with small samples.<br><br><b>Expected returns</b><br>Black Litterman style blend of two sources: (1) implied equilibrium returns Pi equal to lambda times Sigma times w_market with risk aversion lambda of 2.5, and (2) historical mean returns. The 50 50 blend tempers corner solutions that pure historical mean chasing tends to produce.<br><br><b>Box constraints</b><br>Every weight is constrained between 5 percent and 60 percent. This stops the optimiser from putting everything in the single best performer and produces portfolios that are actually investable.<br><br><b>Frontier sweep</b><br>Use the max Sharpe portfolio and the minimum volatility portfolio as anchors, then solve efficient_return(target) at 50 equally spaced target returns in between.',
+    why: 'Mean variance optimisation as taught by Markowitz 1952 is famously unstable with raw inputs. Ledoit Wolf, Black Litterman priors, and box constraints are the three standard fixes used by every institutional quant desk. Without them, the optimiser picks corner solutions that would never clear a risk committee.',
+    tags: ['Markowitz', 'Black Litterman', 'Ledoit Wolf Shrinkage', 'Box Constraints', 'PyPortfolioOpt'],
   },
   correlation: {
     title: 'Correlation Matrix',
-    what: 'Shows how similarly each pair of holdings moves day-to-day. Values range from -1 (move opposite) to +1 (move together).',
-    method: 'Pearson correlation coefficient between daily return series of each pair. Displayed as an interactive heatmap. The average off-diagonal correlation summarizes overall portfolio diversification quality.',
-    why: 'The HHI diversification score only looks at position sizing. Correlation reveals the truth: a portfolio of 10 tech stocks may look "diversified" by weight, but if they\'re all correlated at 0.8, a single shock hits everything. Low correlation = real diversification.',
-    tags: ['Pearson Correlation', 'Diversification', 'Heatmap', 'Risk Management'],
+    what: 'Shows the pairwise Pearson correlation of daily log returns across your holdings, plus a rolling 60 day correlation history so you can see whether pairs decouple or tighten over time.',
+    method: '<b>Pairwise</b><br>Pearson correlation of daily log returns. Output is a symmetric matrix with ones on the diagonal.<br><br><b>Average off diagonal</b><br>Mean of the non diagonal entries summarises whether the portfolio behaves like one bet or many.<br><br><b>Rolling 60 day</b><br>For each pair, compute the rolling 60 trading day Pearson correlation and return the full time series. This is the standard window institutional desks use to watch correlation regime change.',
+    why: 'Position sizing (HHI) does not capture correlation risk. Ten tech names at 10 percent each look diversified on a weight table, but if they all correlate at 0.85 then one factor shock wipes out the entire book. Rolling correlation catches when correlations spike in a crisis.',
+    tags: ['Pearson Correlation', 'Rolling 60d', 'Heatmap', 'Log Returns'],
   },
   stress: {
     title: 'Stress Testing',
-    what: 'Estimates how your portfolio would perform under historical market crises — 2008 GFC, COVID crash, 2022 rate hikes, dot-com bust, and the 2010 flash crash.',
-    method: '<b>Beta-adjusted losses</b>: Each holding\'s estimated loss = its beta &times; the historical market decline. This accounts for stocks that are more or less sensitive to market moves.<br>Per-holding betas are calculated against the portfolio to show which positions contribute most to crisis risk.',
-    why: 'Past performance doesn\'t predict the future, but stress testing shows your portfolio\'s structural vulnerabilities. If your portfolio would lose 50% in a 2008-style event, you may want to add defensive positions.',
-    tags: ['Stress Testing', 'Beta', 'Scenario Analysis', 'Risk Management', 'Tail Risk'],
+    what: 'Projects portfolio losses under five historical crisis scenarios using a beta adjusted shock model, and computes a reverse stress test (what market drop would be required to trigger a given portfolio loss threshold).',
+    method: '<b>Forward stress</b><br>For each scenario the historical SPY return is applied as market_return. Per holding loss equals beta_i times market_return, where beta_i is the canonical 252 day OLS beta versus SPY. Portfolio loss equals the weighted sum, equivalently portfolio_beta times market_return.<br><br><b>Reverse stress</b><br>Given a portfolio loss threshold (default 20 percent), solve for market_drop_needed equal to loss_threshold divided by portfolio_beta. Answers the question, how far would SPY have to fall for me to lose 20 percent.<br><br><b>Scenarios</b><br>2008 GFC at minus 38.9 percent, COVID 19 at minus 33.7 percent, 2022 rate hikes at minus 25.2 percent, dot com at minus 49.1 percent, 2010 flash crash at minus 6.9 percent.',
+    why: 'A beta of 1.2 means crisis losses are 20 percent worse than the index. Stress testing tells you exactly how much worse, before it happens. The reverse stress test is what risk committees ask during quarterly reviews to gut check whether the portfolio is robust.',
+    tags: ['Stress Test', 'OLS Beta', 'Reverse Stress Test', 'Scenario Analysis', 'SPY Proxy'],
+  },
+  factor: {
+    title: 'Factor Attribution',
+    what: 'Decomposes portfolio return into two CAPM components: the portion explained by market exposure (beta times market excess return) and the residual (alpha), which represents idiosyncratic skill or luck.',
+    method: '<b>Decomposition</b><br>R_p minus R_f equals beta times (R_m minus R_f) plus alpha.<br><br><b>Beta contribution</b><br>beta times (R_m minus R_f), where beta is the weighted sum of the holding betas and R_m is SPY annualised return.<br><br><b>Alpha contribution</b><br>The portfolio excess return minus the beta contribution. Positive alpha is skill (or lucky idiosyncratic bets), negative alpha is drag.',
+    why: 'If you want to know whether your portfolio beat the market because of skill or because you just took more risk, factor attribution is the answer. A 20 percent return with a beta of 1.5 during a 15 percent market rally is zero alpha. A 15 percent return with a beta of 0.8 during a 10 percent rally is significant alpha. This panel shows which one you are.',
+    tags: ['CAPM', 'Alpha Beta Decomposition', 'Single Factor Model', 'Performance Attribution'],
+  },
+  tariff: {
+    title: 'Tariff Exposure',
+    what: 'Estimates the portfolio price drag from a tariff shock on the AAPL position, using AAPL China cost of goods sold and a pass through assumption.',
+    method: '<b>Inputs</b><br>tariff_rate (default 25 percent), pass_through (default 50 percent, the share of the tariff cost AAPL can push onto consumers via price rises), AAPL China COGS of 87 billion dollars, AAPL net income of 94 billion dollars.<br><br><b>Step 1 dollar hit</b><br>impact_dollar equals tariff_rate times 87 times (1 minus pass_through). With the defaults that is 25 percent times 87 times 0.5 equals 10.875 billion dollars.<br><br><b>Step 2 earnings drop percent</b><br>impact_dollar over net_income. With the defaults that is 10.875 over 94, about 11.57 percent.<br><br><b>Step 3 price impact</b><br>Under a constant P E assumption, P equals PE times EPS, so a one percent drop in earnings equals a one percent drop in price. The PE cancels in the ratio. Price impact equals earnings drop percent (negative).<br><br><b>Step 4 portfolio drag</b><br>AAPL weight in the portfolio times the price impact.',
+    why: 'AAPL has substantial China manufacturing exposure. A tariff shock is a real and quantifiable tail risk, and this model tells you exactly how much of that risk is in your book right now. The constant P E translation is the standard way desks translate earnings hits to price impacts for a single shock, because multiple compression is a separate and much messier variable.',
+    tags: ['Tariff Stress', 'AAPL', 'China COGS', 'Constant P E', 'Scenario Analysis'],
+  },
+  tax: {
+    title: 'Tax Liability',
+    what: 'Estimates the long term capital gains tax owed on each position if liquidated, and identifies positions with a harvestable loss that could offset gains elsewhere.',
+    method: '<b>Rate</b><br>23.8 percent. This is 20 percent federal long term capital gains plus the 3.8 percent net investment income tax (NIIT) that applies to high earners above the Medicare surtax threshold.<br><br><b>Gains</b><br>Tax owed equals gain times 23.8 percent. After tax gain equals gain minus tax owed.<br><br><b>Losses</b><br>No tax owed. Loss benefit equals the absolute loss times 23.8 percent, representing the tax offset you could realise against other gains.<br><br><b>Assumption</b><br>All positions are assumed held more than one year. Short term gains (taxed as ordinary income) are not computed here because the backend has no purchase date.',
+    why: 'Pretax returns lie. A 40 percent gain is a 30.5 percent gain after tax. This panel surfaces the real number you keep, and flags positions where tax loss harvesting would generate a benefit you are currently leaving on the table.',
+    tags: ['LTCG', 'NIIT 3.8 percent', 'Tax Loss Harvesting', '23.8 percent'],
   },
   options: {
-    title: 'Options Chain',
-    what: 'Displays available call and put option contracts for your stock holdings, including strike prices, bid/ask, implied volatility, volume, and open interest.',
-    method: 'Data fetched from Yahoo Finance. <b>Implied Volatility (IV)</b>: The market\'s forecast of future price movement — derived from option prices using Black-Scholes. <b>Open Interest</b>: Number of outstanding contracts — indicates liquidity.',
-    why: 'Options data reveals what the market expects. High IV means the market anticipates big moves. Options can be used for hedging (protective puts) or income generation (covered calls).',
-    tags: ['Options', 'Implied Volatility', 'Black-Scholes', 'Calls', 'Puts', 'Hedging'],
+    title: 'Options Chain with Greeks',
+    what: 'Option chain for each stock holding with market prices, implied volatility, and the full set of Black Scholes Greeks computed from the market IV. Also shows the put call ratio and the implied volatility skew.',
+    method: '<b>Black Scholes pricing</b><br>C equals S times N(d1) minus K times exp(minus r T) times N(d2) for calls. Put via put call parity.<br><br><b>Greeks</b><br>Delta is dC over dS, gamma is d2C over dS2, theta is dC over dT per calendar day (divided by 365), vega is dC over dsigma per one volatility point (divided by 100), rho is dC over dr per one rate point (divided by 100).<br><br><b>Risk free rate</b><br>Live 10 year treasury from FRED.<br><br><b>Put Call Ratio</b><br>Total put open interest over total call open interest. Above 1 means puts are more actively held, often interpreted as bearish positioning.<br><br><b>IV Skew</b><br>Implied volatility of an approximately 10 percent out of the money put minus the IV of an approximately 10 percent out of the money call. Positive skew (the usual state for equities) means downside protection costs more than upside speculation.',
+    why: 'Greeks tell you exactly how your option position will move if any of the five Black Scholes inputs changes. Delta is the hedge ratio, gamma is the delta sensitivity (important for risk on fast moves), theta is the daily time decay you pay for optionality, vega is your volatility exposure, rho is your rate exposure. Put call ratio and skew together give a quick read on how the options market is priced relative to calm.',
+    tags: ['Black Scholes', 'Delta', 'Gamma', 'Theta', 'Vega', 'Rho', 'Put Call Ratio', 'IV Skew'],
   },
   allocation: {
     title: 'Allocation',
-    what: 'A doughnut chart showing how your portfolio value is distributed across holdings by percentage.',
-    method: 'Each slice = (position value / total portfolio value) &times; 100%. Position value = current price &times; shares held.',
-    why: 'Concentration risk is one of the biggest portfolio killers. If one position is 80% of your portfolio, a single bad earnings report can devastate you. Visualizing allocation makes imbalances immediately obvious.',
-    tags: ['Asset Allocation', 'Concentration Risk', 'Chart.js'],
+    what: 'Doughnut chart of how portfolio value is distributed across holdings in percentage terms.',
+    method: 'Each slice equals (position value) over (total portfolio value) times 100 percent. Position value equals current price times shares held.',
+    why: 'Visual allocation makes concentration obvious in a way that a number cannot. If one slice is taking more than half the ring, that is the single biggest source of risk in the book.',
+    tags: ['Position Sizing', 'Concentration', 'Chart.js'],
   },
   macro: {
     title: 'Macro Environment',
-    what: 'Key macroeconomic indicators from the Federal Reserve (FRED): Fed Funds Rate, CPI (inflation), unemployment, 10Y Treasury yield, and S&P 500 level.',
-    method: 'Data fetched from the FRED API (Federal Reserve Economic Data). Each indicator shows the most recent observation and its date.',
-    why: 'Macro conditions drive markets. Rising rates hurt growth stocks. High inflation erodes purchasing power. The 10Y yield is the "risk-free rate" used in Sharpe calculations. Understanding macro context makes portfolio decisions more informed.',
-    tags: ['FRED', 'Federal Reserve', 'Interest Rates', 'CPI', 'Macro Economics'],
+    what: 'Live macro snapshot from the Federal Reserve Economic Data (FRED) API: fed funds rate, CPI year over year inflation, unemployment rate, 10 year treasury yield, and S and P 500 level.',
+    method: '<b>Fed Funds Rate</b><br>Latest monthly FEDFUNDS observation in percent.<br><br><b>CPI Year over Year</b><br>Computed as ((CPI_current over CPI_12_months_ago) minus 1) times 100. The raw CPIAUCSL series is an index level (currently around 327), so the backend pulls 13 months of history and computes the percentage change directly. This fixes the common mistake of displaying the raw index as inflation.<br><br><b>Unemployment</b><br>Latest UNRATE observation in percent.<br><br><b>10Y Treasury</b><br>Latest DGS10 observation in percent. This is the risk free rate used in Sharpe, Sortino, Treynor, and Black Scholes throughout the app.<br><br><b>S and P 500</b><br>Latest SP500 level. Used as a reference only, the analytical beta is calculated against SPY returns.',
+    why: 'Portfolio returns live inside a macro regime. Rising rates hurt long duration growth stocks. Rising inflation erodes nominal returns. The treasury yield is the risk free rate that enters every risk adjusted return ratio, so getting it live matters.',
+    tags: ['FRED', 'CPI YoY', 'Fed Funds', '10Y Treasury', 'Unemployment'],
   },
   news: {
-    title: 'News & Sentiment',
-    what: 'Recent financial news headlines for your holdings, optionally tagged with AI-powered sentiment analysis (positive/neutral/negative) by FinGPT.',
-    method: 'News fetched via Yahoo Finance. When the FinGPT model is online, each headline is classified using the fine-tuned Llama2 model with the prompt: "What is the sentiment of this news?"',
-    why: 'News drives short-term price action. AI sentiment analysis at scale lets you quickly assess whether recent coverage is bullish or bearish across all your holdings — something that would take hours to do manually.',
-    tags: ['News', 'Sentiment Analysis', 'FinGPT', 'NLP', 'Yahoo Finance'],
+    title: 'News and Sentiment',
+    what: 'Recent financial headlines for each holding, deduplicated by URL fingerprint, and optionally tagged with per headline Veris sentiment.',
+    method: '<b>Fetch</b><br>Yahoo Finance news feed per ticker.<br><br><b>Deduplication</b><br>Every URL is normalised (lowercase host, stripped query parameters, stripped fragment, stripped trailing slash) and hashed with sha1. The first 16 hex characters form the fingerprint. Articles with duplicate fingerprints or duplicate normalised titles are skipped, so syndicated wire stories only appear once.<br><br><b>Sentiment</b><br>When the Veris model is online, each headline is sent to the Llama2 plus LoRA classifier and labelled positive, neutral, or negative.',
+    why: 'Headline deduplication matters more than it sounds. Without it, Reuters syndicated stories show up three or four times each and crowd out other news. The URL hash approach is robust to tracking parameters like utm_source that would otherwise break naive text matching.',
+    tags: ['URL Fingerprint', 'SHA1 Dedup', 'Veris Sentiment', 'Yahoo Finance'],
+  },
+  holders: {
+    title: 'Legendary Investors',
+    what: 'Cross references your portfolio stocks against SEC 13F filings to show which legendary investors and top hedge funds hold the same names as you.',
+    method: '<b>Data source</b><br>Yahoo Finance institutional holders and mutual fund holders, which aggregate 13F filings. SEC requires institutional managers with over 100 million dollars in qualifying assets to file quarterly.<br><br><b>Matching</b><br>A curated dictionary of 25 plus legendary investors (Buffett, Dalio, Simons, Griffin, Soros, Ackman, Druckenmiller, and others) is matched against holder names. If a holder name contains a known fund substring, the position is flagged with the investor name, fund, and investing style.<br><br><b>Limitations</b><br>13F filings are delayed (filed 45 days after quarter end). They only show long equity positions (no shorts, no options, no bonds). The investor may have already exited by the time the filing is public.',
+    why: 'Knowing that Warren Buffett holds the same stock as you does not make it a good trade, but it is a useful signal. Smart money positioning, especially concentrated positions, can confirm or challenge your own thesis. The investing style tag helps you understand whether the overlap is coincidental or philosophically aligned with your own approach.',
+    tags: ['13F Filing', 'Institutional Holders', 'Smart Money', 'SEC', 'Buffett', 'Hedge Funds'],
+  },
+  whatif: {
+    title: 'What-If Trade Simulator',
+    what: 'Simulate adding or removing a position and instantly see how the trade would change your portfolio risk and return metrics before you execute.',
+    method: '<b>Process</b><br>The simulator takes your current portfolio, applies the hypothetical trade (buy or sell N shares of a ticker), then recomputes the full metric stack on the modified portfolio.<br><br><b>Metrics compared</b><br>Sharpe ratio, annualised volatility, portfolio beta vs SPY, HHI concentration, effective N, and parametric 30 day VaR at 95 percent.<br><br><b>Delta</b><br>Each metric shows before, after, and the signed change. Green delta means improvement, red means degradation.',
+    why: 'Every trade changes the portfolio risk profile. This simulator lets you preview the impact before committing capital. Adding a high beta name to a low vol portfolio might boost expected return but also spike your VaR.',
+    tags: ['What If', 'Trade Simulation', 'Metric Delta', 'Position Sizing'],
+  },
+  regime: {
+    title: 'Regime Aware Risk Engine',
+    what: 'Classifies the current market volatility regime using rolling realised volatility and adjusts VaR estimates to reflect the regime you are actually in, not an unconditional average.',
+    method: '<b>Rolling vol</b><br>21 day rolling standard deviation of portfolio daily log returns, annualised (times sqrt 252). This is the standard institutional window for short horizon vol.<br><br><b>Regime buckets</b><br>Low (below 12 percent), Normal (12 to 20 percent), Elevated (20 to 30 percent), Crisis (above 30 percent).<br><br><b>Regime conditional VaR</b><br>Instead of using the full return distribution, only the returns observed during the current regime class are used to estimate VaR. In a crisis regime this produces a much larger (worse) VaR than the unconditional estimate.<br><br><b>Transitions</b><br>Shows the empirical probability of moving from one regime to another.',
+    why: 'Unconditional VaR is an average across calm and turbulent periods. If you are currently in a crisis regime, the unconditional number understates your real risk. Regime conditioning fixes this and gives a risk number that reflects right now.',
+    tags: ['Regime Detection', 'Rolling Volatility', 'Conditional VaR', 'Crisis Detection'],
+  },
+  events: {
+    title: 'Event Risk Calendar',
+    what: 'Shows upcoming earnings dates for each stock holding, together with historical earnings day return distributions and an event day VaR estimate.',
+    method: '<b>Earnings dates</b><br>Pulled from Yahoo Finance calendar data. Shows the next scheduled earnings announcement per ticker.<br><br><b>Historical returns</b><br>For each past earnings date in the last year, computes the one day return (close to close) on the announcement day.<br><br><b>Average and std</b><br>Mean and standard deviation of historical earnings day returns. A high std means the stock moves a lot on earnings, regardless of direction.<br><br><b>Event VaR</b><br>Approximate worst case earnings day move at the 5th percentile of historical earnings returns.',
+    why: 'Earnings announcements are the single largest source of overnight gap risk for individual stocks. Knowing when they are coming and how the stock has historically reacted lets you size positions and hedge appropriately.',
+    tags: ['Earnings Calendar', 'Event Risk', 'Gap Risk', 'Historical Returns'],
+  },
+  quality: {
+    title: 'Data Quality Dashboard',
+    what: 'Per ticker assessment of the price data feeding into every calculation on this dashboard. Reports completeness, freshness, zero volume days, data gaps, and an overall quality score.',
+    method: '<b>Expected bars</b><br>Business days (weekdays) between the oldest and newest data point for stocks, calendar days for crypto.<br><br><b>Missing percent</b><br>(1 minus actual over expected) times 100.<br><br><b>Zero volume</b><br>Days where reported volume is exactly zero, which often indicates a data feed issue or exchange holiday not filtered out.<br><br><b>Gaps</b><br>Consecutive calendar day gaps exceeding 4 days (stocks) or 2 days (crypto) that are not explained by weekends.<br><br><b>Quality score</b><br>Composite 0 to 100 score: 40 points for completeness, 30 for freshness (decays over 30 days), 15 for volume quality, 15 for gap free data.',
+    why: 'Garbage in, garbage out. If the price data has holes, stale bars, or zero volume days, every metric downstream (volatility, beta, VaR, Sharpe) is contaminated. This panel lets you catch data issues before they become analysis errors.',
+    tags: ['Data Quality', 'Completeness', 'Freshness', 'Gap Detection', 'Quality Score'],
   },
 };
 
@@ -506,6 +944,66 @@ function showInfo(key) {
 }
 function closeInfo() { document.getElementById('infoOverlay').classList.remove('active'); }
 
+// ── Navigation Bar ────────────────────────────────
+const NAV_SECTIONS = [
+  { id: 'sectionSummary', label: 'Summary' },
+  { id: 'sectionAI', label: 'AI Insight' },
+  { id: 'sectionHoldings', label: 'Holdings' },
+  { id: 'candlePanel', label: 'Charts' },
+  { id: 'monteCarloPanel', label: 'VaR' },
+  { id: 'frontierPanel', label: 'Frontier' },
+  { id: 'corrPanel', label: 'Correlation' },
+  { id: 'stressPanel', label: 'Stress' },
+  { id: 'factorPanel', label: 'Factor' },
+  { id: 'tariffPanel', label: 'Tariff' },
+  { id: 'taxPanel', label: 'Tax' },
+  { id: 'optionsPanel', label: 'Options' },
+  { id: 'sectionAllocation', label: 'Allocation' },
+  { id: 'sectionMacro', label: 'Macro' },
+  { id: 'sectionNews', label: 'News' },
+  { id: 'holdersPanel', label: 'Investors' },
+  { id: 'whatifPanel', label: 'What If' },
+  { id: 'regimePanel', label: 'Regime' },
+  { id: 'eventsPanel', label: 'Events' },
+  { id: 'qualityPanel', label: 'Quality' },
+];
+
+function buildNavBar() {
+  const container = document.getElementById('navLinks');
+  container.innerHTML = NAV_SECTIONS.map(s =>
+    `<a class="nav-link" data-target="${s.id}" onclick="scrollToSection('${s.id}')">${s.label}</a>`
+  ).join('');
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const navH = document.querySelector('.nav-bar')?.offsetHeight || 44;
+  const top = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+  window.scrollTo({ top, behavior: 'smooth' });
+}
+
+// Highlight active nav link on scroll
+let _navTicking = false;
+window.addEventListener('scroll', () => {
+  if (_navTicking) return;
+  _navTicking = true;
+  requestAnimationFrame(() => {
+    const navH = document.querySelector('.nav-bar')?.offsetHeight || 44;
+    const links = document.querySelectorAll('.nav-link');
+    let activeId = null;
+    for (const s of NAV_SECTIONS) {
+      const el = document.getElementById(s.id);
+      if (el && el.style.display !== 'none') {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= navH + 60) activeId = s.id;
+      }
+    }
+    links.forEach(l => l.classList.toggle('active', l.dataset.target === activeId));
+    _navTicking = false;
+  });
+});
+
 // ── Plotly Theme ──────────────────────────────────
 const PLOTLY_LAYOUT = {
   paper_bgcolor: 'rgba(0,0,0,0)',
@@ -526,7 +1024,185 @@ let holdings = [
 let allocationChart = null;
 let lastAnalysisData = null;
 
-document.addEventListener('DOMContentLoaded', () => { renderHoldings(); checkHealth(); });
+// ── Session (persisted in localStorage) ────
+let _session = { userId: null, portfolioId: null, username: null };
+
+function _loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem('veris_session'));
+    if (s && s.userId) { _session = s; return true; }
+  } catch {}
+  return false;
+}
+function _saveSession() { localStorage.setItem('veris_session', JSON.stringify(_session)); }
+function _clearSession() { _session = { userId: null, portfolioId: null, username: null }; localStorage.removeItem('veris_session'); }
+function isLoggedIn() { return !!_session.userId; }
+
+// ── Auth UI ────────────────────────────────
+function showLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('loginError').textContent = '';
+}
+function showRegister() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('regError').textContent = '';
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  if (!username || !password) { errEl.textContent = 'Please fill in both fields.'; return; }
+  errEl.textContent = '';
+  try {
+    const r = await fetch('/api/db/users/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      errEl.textContent = e.detail || 'Invalid credentials';
+      return;
+    }
+    const user = await r.json();
+    _session.userId = user.id;
+    _session.username = user.username;
+    _saveSession();
+    await _loadUserPortfolio();
+    _enterApp();
+  } catch (e) { errEl.textContent = 'Connection error: ' + e.message; }
+}
+
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const errEl = document.getElementById('regError');
+  if (!username || !email || !password) { errEl.textContent = 'Please fill in all fields.'; return; }
+  if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+  errEl.textContent = '';
+  try {
+    const r = await fetch('/api/db/users/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      errEl.textContent = e.detail || 'Registration failed';
+      return;
+    }
+    const user = await r.json();
+    _session.userId = user.id;
+    _session.username = user.username;
+    _saveSession();
+    await _loadUserPortfolio();
+    _enterApp();
+  } catch (e) { errEl.textContent = 'Connection error: ' + e.message; }
+}
+
+function enterGuest() { _clearSession(); _enterApp(); }
+
+function doLogout() {
+  _clearSession();
+  holdings = [
+    { symbol: 'AAPL', shares: 10, avg_cost: 170 },
+    { symbol: 'MSFT', shares: 5, avg_cost: 380 },
+    { symbol: 'GOOGL', shares: 3, avg_cost: 140 },
+  ];
+  renderHoldings();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('userBar').style.display = 'none';
+  document.getElementById('authOverlay').classList.remove('hidden');
+}
+
+function _enterApp() {
+  document.getElementById('authOverlay').classList.add('hidden');
+  if (isLoggedIn()) {
+    document.getElementById('userBar').style.display = 'flex';
+    document.getElementById('userDisplayName').textContent = _session.username;
+  } else {
+    document.getElementById('userBar').style.display = 'none';
+  }
+  renderHoldings();
+}
+
+// ── Load portfolio from DB ─────────────────
+async function _loadUserPortfolio() {
+  if (!_session.userId) return;
+  try {
+    // Get user's portfolios
+    const r = await fetch(`/api/db/users/${_session.userId}/portfolios`);
+    if (!r.ok) return;
+    const portfolios = await r.json();
+    if (!portfolios.length) return;
+    // Use the default portfolio, or the first one
+    const pf = portfolios.find(p => p.is_default) || portfolios[0];
+    _session.portfolioId = pf.id;
+    _saveSession();
+    // Load holdings
+    const hr = await fetch(`/api/db/portfolios/${pf.id}/holdings`);
+    if (!hr.ok) return;
+    const dbHoldings = await hr.json();
+    if (dbHoldings.length) {
+      holdings = dbHoldings.map(h => ({
+        symbol: h.symbol,
+        shares: h.shares,
+        avg_cost: h.avg_cost,
+        dividends_per_share: h.dividends_per_share || 0,
+      }));
+    }
+  } catch (e) { console.warn('Failed to load portfolio from DB:', e); }
+}
+
+// ── Save holdings to DB ────────────────────
+async function _syncHoldingsToDb() {
+  if (!isLoggedIn() || !_session.portfolioId) return;
+  try {
+    // Get current DB holdings
+    const r = await fetch(`/api/db/portfolios/${_session.portfolioId}/holdings`);
+    if (!r.ok) return;
+    const existing = await r.json();
+    // Delete all existing holdings first (clean sync)
+    await Promise.all(existing.map(h =>
+      fetch(`/api/db/holdings/${h.id}?user_id=${_session.userId}`, { method: 'DELETE' })
+    ));
+    // Add current holdings
+    const valid = holdings.filter(h => h.symbol && h.symbol.trim() && h.shares > 0);
+    await Promise.all(valid.map(h =>
+      fetch(`/api/db/portfolios/${_session.portfolioId}/holdings?user_id=${_session.userId}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: h.symbol.trim().toUpperCase(),
+          shares: h.shares,
+          avg_cost: h.avg_cost,
+          dividends_per_share: h.dividends_per_share || 0,
+        }),
+      })
+    ));
+    _flashSaved();
+  } catch (e) { console.warn('Failed to sync holdings:', e); }
+}
+
+function _flashSaved() {
+  const el = document.getElementById('saveIndicator');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── Init ───────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  checkHealth();
+  if (_loadSession()) {
+    // Returning user — load portfolio and enter app
+    _loadUserPortfolio().then(() => { _enterApp(); });
+  } else {
+    // Show auth overlay
+    renderHoldings();
+  }
+});
 
 async function checkHealth() {
   try {
@@ -534,10 +1210,11 @@ async function checkHealth() {
     const data = await r.json();
     const dot = document.getElementById('modelStatus');
     const text = document.getElementById('modelStatusText');
+    const utcTime = new Date().toISOString().slice(11,16);
     if (data.model_server === 'connected') {
-      dot.className = 'status-dot ok'; text.textContent = 'FinGPT connected';
+      dot.className = 'status-dot ok'; text.textContent = `Veris live \u00B7 ${utcTime} UTC`;
     } else {
-      dot.className = 'status-dot off'; text.textContent = 'FinGPT offline (quant metrics still work)';
+      dot.className = 'status-dot off'; text.textContent = 'Veris offline (quant metrics still work)';
     }
   } catch { document.getElementById('modelStatus').className = 'status-dot off'; document.getElementById('modelStatusText').textContent = 'Backend unreachable'; }
 }
@@ -545,15 +1222,16 @@ async function checkHealth() {
 // ── Holdings UI ────────────────────────────────────────────
 function renderHoldings() {
   const c = document.getElementById('holdingsContainer');
-  c.innerHTML = `<div class="holdings-grid"><label>Symbol</label><label>Shares</label><label>Avg Cost</label><label></label></div>`
+  c.innerHTML = `<div class="holdings-grid"><label>Symbol</label><label>Shares</label><label>Avg Cost</label><label>Div / Share</label><label></label></div>`
     + holdings.map((h, i) => `<div class="holdings-grid">
       <input value="${h.symbol}" onchange="holdings[${i}].symbol=this.value" placeholder="AAPL or BTC">
       <input type="number" value="${h.shares}" onchange="holdings[${i}].shares=+this.value" placeholder="10">
       <input type="number" value="${h.avg_cost}" onchange="holdings[${i}].avg_cost=+this.value" placeholder="150">
+      <input type="number" value="${h.dividends_per_share || 0}" onchange="holdings[${i}].dividends_per_share=+this.value" placeholder="0.00">
       <button class="btn-danger" onclick="removeHolding(${i})">x</button>
     </div>`).join('');
 }
-function addHolding() { holdings.push({ symbol: '', shares: 0, avg_cost: 0 }); renderHoldings(); }
+function addHolding() { holdings.push({ symbol: '', shares: 0, avg_cost: 0, dividends_per_share: 0 }); renderHoldings(); }
 function removeHolding(i) { holdings.splice(i, 1); renderHoldings(); }
 
 // ── Analyze ────────────────────────────────────────────
@@ -570,12 +1248,20 @@ async function analyzePortfolio() {
   btn.textContent = steps[0];
 
   document.getElementById('summaryGrid').innerHTML = '<div class="loader">Fetching market data &amp; running simulations</div>';
-  document.getElementById('holdingsTable').querySelector('tbody').innerHTML = '<tr><td colspan="13" class="loader">Loading</td></tr>';
+  document.getElementById('holdingsTable').querySelector('tbody').innerHTML = '<tr><td colspan="16" class="loader">Loading</td></tr>';
 
   try {
-    const r = await fetch('/api/portfolio/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ holdings: valid }) });
+    // Build analyze URL — if logged in, pass portfolio_id and user_id for auto-snapshot
+    let analyzeUrl = '/api/portfolio/analyze';
+    if (isLoggedIn() && _session.portfolioId) {
+      analyzeUrl += `?portfolio_id=${_session.portfolioId}&user_id=${_session.userId}`;
+    }
+    const r = await fetch(analyzeUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ holdings: valid }) });
     if (!r.ok) { const err = await r.json().catch(() => ({ detail: r.statusText })); throw new Error(err.detail || `Server error (${r.status})`); }
-    renderResults(await r.json());
+    const data = await r.json();
+    renderResults(data);
+    // Auto-save holdings to DB (non-blocking)
+    if (isLoggedIn()) _syncHoldingsToDb();
   } catch (e) {
     document.getElementById('summaryGrid').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
@@ -588,46 +1274,166 @@ function renderResults(data) {
   const { analytics, monte_carlo, efficient_frontier, correlation, stress_test, news, macro, ai_insight, model_available, warnings } = data;
   const s = analytics.summary;
 
-  // Warnings
+  // Warnings — merged with stale price detection from price_freshness
+  const pf = data.price_freshness || {};
+  const stale = Object.entries(pf).filter(([_k, v]) => v && v.is_stale).map(([k, v]) => `${k} last traded ${v.latest_date} (${v.age_days} days old)`);
+  const allWarnings = [...(warnings || []), ...(stale.length ? ['Stale price data: ' + stale.join('; ')] : [])];
   const wb = document.getElementById('warningsBanner');
-  if (warnings && warnings.length) { wb.style.display = 'block'; wb.innerHTML = `<strong style="color:var(--yellow)">Warnings</strong><ul>${warnings.map(w => `<li>${w}</li>`).join('')}</ul>`; }
+  if (allWarnings.length) { wb.style.display = 'block'; wb.innerHTML = `<strong style="color:var(--yellow)">Warnings</strong><ul>${allWarnings.map(w => `<li>${w}</li>`).join('')}</ul>`; }
   else { wb.style.display = 'none'; }
 
-  // Summary
-  const gl = s.total_gain_loss_pct, gc = gl >= 0 ? 'positive' : 'negative';
-  const betaStr = s.portfolio_beta != null ? s.portfolio_beta.toFixed(2) : 'N/A';
-  const alphaStr = s.portfolio_alpha != null ? (s.portfolio_alpha * 100).toFixed(2) + '%' : 'N/A';
+  // Summary — full v5 metric set
+  const signCls = v => v == null ? '' : v > 0 ? 'positive' : v < 0 ? 'negative' : '';
+  const fmtN = (v, dp = 2) => v == null ? 'N/A' : Number(v).toFixed(dp);
+  const fmtP = (v, dp = 2) => v == null ? 'N/A' : (v * 100).toFixed(dp) + '%';
+  const rfPct = s.rf_annual_pct != null ? s.rf_annual_pct.toFixed(2) + '%' : 'N/A';
+  const lookbackLabel = s.lookback_days ? `${s.lookback_days}d lookback` : 'lookback unknown';
+  const mcSign = v => v == null ? 'mc-neutral' : v > 0 ? 'mc-positive' : v < 0 ? 'mc-negative' : 'mc-neutral';
+  const ld = s.lookback_days || 252;
   document.getElementById('summaryGrid').innerHTML = `
-    <div class="metric-card"><div class="label">Total Value</div><div class="value">$${fmt(s.total_value)}</div></div>
-    <div class="metric-card"><div class="label">Gain / Loss</div><div class="value ${gc}">${gl >= 0 ? '+' : ''}${gl}%</div><div class="sub">$${fmt(s.total_gain_loss)}</div></div>
-    <div class="metric-card"><div class="label">Volatility</div><div class="value">${(s.portfolio_volatility * 100).toFixed(1)}%</div><div class="sub">annualized</div></div>
-    <div class="metric-card"><div class="label">Sharpe</div><div class="value">${s.portfolio_sharpe}</div></div>
-    <div class="metric-card"><div class="label">Sortino</div><div class="value">${s.portfolio_sortino}</div><div class="sub">downside risk</div></div>
-    <div class="metric-card"><div class="label">Beta vs SPY</div><div class="value">${betaStr}</div><div class="sub">market sensitivity</div></div>
-    <div class="metric-card"><div class="label">Alpha</div><div class="value ${s.portfolio_alpha > 0 ? 'positive' : s.portfolio_alpha < 0 ? 'negative' : ''}">${alphaStr}</div><div class="sub">Jensen's alpha</div></div>
-    <div class="metric-card"><div class="label">Diversification</div><div class="value">${(s.diversification_score * 100).toFixed(0)}%</div></div>`;
+    <div class="metric-card mc-neutral">
+      <div class="label">Total Value</div>
+      <div class="value">$${fmt(s.total_value)}</div>
+      <div class="sub">cost $${fmt(s.total_cost)}</div>
+    </div>
+    <div class="metric-card ${mcSign(s.total_gain_loss_pct)}">
+      <div class="label">Price Return</div>
+      <div class="value ${signCls(s.total_gain_loss_pct)}">${s.total_gain_loss_pct >= 0 ? '+' : ''}${s.total_gain_loss_pct}%</div>
+      <div class="sub">$${fmt(s.total_gain_loss)}</div>
+    </div>
+    <div class="metric-card ${mcSign(s.total_return_pct)}">
+      <div class="label">Total Return</div>
+      <div class="value ${signCls(s.total_return_pct)}">${s.total_return_pct >= 0 ? '+' : ''}${s.total_return_pct}%</div>
+      <div class="sub">incl divs $${fmt(s.total_dividends_received || 0)}</div>
+    </div>
+    <div class="metric-card mc-neutral">
+      <div class="label">Volatility</div>
+      <div class="value">${(s.portfolio_volatility * 100).toFixed(1)}%</div>
+      <div class="sub">annualized, ${lookbackLabel}</div>
+      <div class="disclosure">\u03C3_daily \u00D7 \u221A252 \u00B7 ${ld}d window</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_sharpe)}">
+      <div class="label">Sharpe</div>
+      <div class="value ${signCls(s.portfolio_sharpe)}">${fmtN(s.portfolio_sharpe)}</div>
+      <div class="sub">Rf ${rfPct}</div>
+      <div class="disclosure">Rf ${rfPct} \u00B7 ${ld}d lookback</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_sortino)}">
+      <div class="label">Sortino</div>
+      <div class="value ${signCls(s.portfolio_sortino)}">${fmtN(s.portfolio_sortino)}</div>
+      <div class="sub">downside only</div>
+      <div class="disclosure">MAR = 0 \u00B7 downside only \u00B7 ${ld}d</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_calmar)}">
+      <div class="label">Calmar</div>
+      <div class="value ${signCls(s.portfolio_calmar)}">${fmtN(s.portfolio_calmar)}</div>
+      <div class="sub">return over max drawdown</div>
+      <div class="disclosure">CAGR / |Max Drawdown|</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_treynor)}">
+      <div class="label">Treynor</div>
+      <div class="value ${signCls(s.portfolio_treynor)}">${fmtN(s.portfolio_treynor)}</div>
+      <div class="sub">excess return per beta</div>
+      <div class="disclosure">(R_p \u2212 Rf) / \u03B2</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_information_ratio)}">
+      <div class="label">Info Ratio</div>
+      <div class="value ${signCls(s.portfolio_information_ratio)}">${fmtN(s.portfolio_information_ratio)}</div>
+      <div class="sub">active return vs SPY</div>
+      <div class="disclosure">(R_p \u2212 R_spy) / tracking error</div>
+    </div>
+    <div class="metric-card mc-neutral">
+      <div class="label">Beta vs SPY</div>
+      <div class="value">${fmtN(s.portfolio_beta)}</div>
+      <div class="sub">252d OLS regression</div>
+      <div class="disclosure">252d OLS vs SPY \u00B7 log returns</div>
+    </div>
+    <div class="metric-card ${mcSign(s.portfolio_alpha)}">
+      <div class="label">Alpha</div>
+      <div class="value ${signCls(s.portfolio_alpha)}">${fmtP(s.portfolio_alpha)}</div>
+      <div class="sub">Jensen CAPM</div>
+      <div class="disclosure">Jensen CAPM \u00B7 R_p \u2212 [Rf + \u03B2(Rm\u2212Rf)]</div>
+    </div>
+    <div class="metric-card mc-neutral">
+      <div class="label">HHI</div>
+      <div class="value">${fmtN(s.hhi, 3)}</div>
+      <div class="sub">concentration, lower is better</div>
+    </div>
+    <div class="metric-card mc-neutral">
+      <div class="label">Effective N</div>
+      <div class="value">${fmtN(s.effective_n, 2)}</div>
+      <div class="sub">${s.num_holdings} positions held</div>
+    </div>
+    <div class="metric-card mc-neutral">
+      <div class="label">Div Ratio</div>
+      <div class="value">${fmtN(s.diversification_ratio)}</div>
+      <div class="sub">above 1 means diversified</div>
+    </div>`;
 
-  // AI Insight (now shown early)
+  // Freshness bar
+  const holdings = s.holdings || data.analytics.holdings || [];
+  const freshBar = document.getElementById('freshnessBar');
+  const freshText = document.getElementById('freshnessText');
+  const pFresh = data.price_freshness || {};
+  const anyStale = Object.values(pFresh).some(v => v && v.is_stale);
+  const nowUtc = new Date().toISOString().slice(11,16);
+  const priceSnippets = holdings.slice(0,6).map(h => `${h.symbol} $${fmt(h.current_price)}`).join(' \u00B7 ');
+  freshBar.style.display = '';
+  if (anyStale) {
+    freshBar.className = 'freshness-bar stale';
+    freshText.textContent = `Data stale \u00B7 ${priceSnippets} \u00B7 Last calculated ${nowUtc} UTC`;
+  } else {
+    freshBar.className = 'freshness-bar';
+    freshText.textContent = `All prices verified live \u00B7 ${priceSnippets} \u00B7 Last calculated ${nowUtc} UTC`;
+  }
+
+  // AI Insight
   const aiEl = document.getElementById('aiInsight');
   if (model_available && ai_insight) { aiEl.className = 'ai-box'; aiEl.textContent = ai_insight; }
-  else { aiEl.className = 'ai-box unavailable'; aiEl.textContent = model_available ? 'No insight generated.' : 'FinGPT model is offline. Start the Colab notebook to enable AI-powered insights and sentiment analysis.\nAll quantitative analytics above are fully functional without the model.'; }
+  else { aiEl.className = 'ai-box unavailable'; aiEl.textContent = model_available ? 'No insight generated.' : 'Veris model is offline. Start the Colab notebook to enable AI insights and sentiment analysis. All quantitative analytics above are fully functional without the model.'; }
 
-  // Holdings table
+  // Holdings table — with total return, dividends, tax, rsi label
   const tbody = document.getElementById('holdingsTable').querySelector('tbody');
   tbody.innerHTML = analytics.holdings.map(h => {
-    if (h.error) return `<tr><td>${h.symbol}</td><td colspan="12" style="color:var(--red)">${h.error}</td></tr>`;
+    if (h.error) return `<tr><td>${h.symbol}</td><td colspan="15" style="color:var(--red)">${h.error}</td></tr>`;
     const hgc = h.gain_loss_pct >= 0 ? 'positive' : 'negative';
-    const rc = h.rsi_14 < 30 ? 'positive' : h.rsi_14 > 70 ? 'negative' : '';
-    const rl = h.rsi_14 < 30 ? ' (OS)' : h.rsi_14 > 70 ? ' (OB)' : '';
+    const trc = h.total_return_pct >= 0 ? 'positive' : 'negative';
+    // RSI label comes from the backend (extreme_oversold, oversold, neutral, overbought, extreme_overbought)
+    const lbl = (h.rsi_label || '').toLowerCase();
+    const rsiCls = lbl.includes('overbought') ? 'negative' : lbl.includes('oversold') ? 'positive' : '';
+    const rsiTag = lbl && lbl !== 'neutral'
+      ? ` <small style="opacity:0.75;font-size:0.68rem">${lbl.replace(/_/g, ' ')}</small>`
+      : '';
+    // Tax cell
+    let taxCell = '-';
+    if (h.tax) {
+      if (h.tax.tax_owed > 0) {
+        taxCell = `<span class="negative">$${fmt(h.tax.tax_owed)}</span>`;
+      } else if (h.tax.loss_benefit > 0) {
+        taxCell = `<span class="positive">+$${fmt(h.tax.loss_benefit)}</span>`;
+      } else {
+        taxCell = '$0.00';
+      }
+    }
+    const fresh = (data.price_freshness || {})[h.symbol];
+    const stalePill = fresh && fresh.is_stale ? ` <small style="color:var(--yellow)" title="Stale: last traded ${fresh.latest_date}">stale</small>` : '';
     return `<tr>
-      <td><strong>${h.symbol}</strong></td><td>$${h.current_price}</td><td>$${fmt(h.position_value)}</td>
+      <td><strong>${h.symbol}</strong></td>
+      <td>$${h.current_price}${stalePill}</td>
+      <td>$${fmt(h.position_value)}</td>
       <td class="${hgc}">${h.gain_loss_pct >= 0 ? '+' : ''}${h.gain_loss_pct}%</td>
-      <td>${(h.volatility * 100).toFixed(1)}%</td><td>${h.sharpe_ratio}</td><td>${h.sortino_ratio}</td>
+      <td class="${trc}">${h.total_return_pct >= 0 ? '+' : ''}${h.total_return_pct}%</td>
+      <td>$${fmt(h.dividends_received || 0)}</td>
+      <td>${(h.volatility * 100).toFixed(1)}%</td>
+      <td>${h.sharpe_ratio}</td>
+      <td>${h.sortino_ratio}</td>
       <td>${h.beta != null ? h.beta.toFixed(2) : '-'}</td>
       <td class="${h.alpha > 0 ? 'positive' : h.alpha < 0 ? 'negative' : ''}">${h.alpha != null ? (h.alpha * 100).toFixed(2) + '%' : '-'}</td>
       <td>${(h.max_drawdown * 100).toFixed(1)}%</td>
-      <td>$${h.sma_20}</td><td>$${h.sma_50}</td>
-      <td class="${rc}">${h.rsi_14}${rl}</td>
+      <td>$${h.sma_20}</td>
+      <td>$${h.sma_50}</td>
+      <td class="${rsiCls}">${h.rsi_14}${rsiTag}</td>
+      <td>${taxCell}</td>
     </tr>`;
   }).join('');
 
@@ -642,25 +1448,46 @@ function renderResults(data) {
   renderFrontier(efficient_frontier);
   renderCorrelation(correlation);
   renderStressTest(stress_test);
+  renderFactorAttribution(analytics);
+  renderTariff(analytics);
+  renderTaxPanel(analytics);
 
   // Options
   const stockSyms = analytics.holdings.filter(h => !h.error && !h.symbol.includes('-USD')).map(h => h.symbol);
   const op = document.getElementById('optionsPanel'), os = document.getElementById('optionsSymbol');
-  if (stockSyms.length) { op.style.display = 'block'; os.innerHTML = stockSyms.map(s => `<option value="${s}">${s}</option>`).join(''); onOptionsSymbolChange(); }
+  if (stockSyms.length) { op.style.display = 'block'; os.innerHTML = stockSyms.map(sy => `<option value="${sy}">${sy}</option>`).join(''); onOptionsSymbolChange(); }
   else { op.style.display = 'none'; }
 
-  // Macro
+  // Macro — v5: handle cpi_yoy error, unit suffix, friendly labels
   const me = document.getElementById('macroContainer');
   if (macro && Object.keys(macro).length) {
-    me.innerHTML = Object.entries(macro).map(([k, v]) => {
-      if (v.error) return '';
-      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(35,38,64,0.5)">
-        <span style="color:var(--muted)">${k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-        <span><strong>${v.value}</strong> <small style="color:var(--muted)">(${v.date})</small></span></div>`;
+    const order = ['fed_funds_rate', 'cpi_yoy', 'treasury_10y', 'unemployment', 'sp500'];
+    const labels = {
+      fed_funds_rate: 'Fed Funds Rate',
+      cpi_yoy: 'CPI Year over Year',
+      treasury_10y: '10 Year Treasury',
+      unemployment: 'Unemployment',
+      sp500: 'S and P 500 Level',
+    };
+    const keys = [...order.filter(k => macro[k]), ...Object.keys(macro).filter(k => !order.includes(k))];
+    me.innerHTML = keys.map(k => {
+      const v = macro[k];
+      if (!v) return '';
+      const label = labels[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      if (v.error) {
+        return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="color:var(--muted)">${label}</span><span style="color:var(--muted);font-size:0.75rem">N/A</span></div>`;
+      }
+      const unit = v.unit === 'percent' ? '%' : '';
+      const rawVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
+      const val = Number.isFinite(rawVal) ? rawVal.toFixed(2) : v.value;
+      return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+        <span style="color:var(--muted)">${label}</span>
+        <span><strong>${val}${unit}</strong> <small style="color:var(--muted)">(${v.date})</small></span>
+      </div>`;
     }).join('');
   } else { me.innerHTML = '<p style="color:var(--muted)">Could not fetch macro data</p>'; }
 
-  // Sentiment legend + News
+  // Sentiment legend and news
   document.getElementById('sentimentLegend').style.display = model_available ? 'flex' : 'none';
   const ne = document.getElementById('newsContainer');
   if (news && news.length) {
@@ -669,9 +1496,490 @@ function renderResults(data) {
       const sent = a.fingpt_sentiment?.sentiment || '';
       if (sent) { const cls = sent.toLowerCase().includes('pos') ? 'positive' : sent.toLowerCase().includes('neg') ? 'negative' : 'neutral'; badge = `<span class="sentiment-badge sentiment-${cls}">${sent}</span>`; }
       const th = a.url ? `<a href="${a.url}" target="_blank" rel="noopener">${a.title}</a>` : a.title;
-      return `<div class="news-item"><div class="news-title">${th} ${badge}</div><div class="news-meta">${a.source} · ${a.published?.slice(0, 10) || ''}</div></div>`;
+      return `<div class="news-item"><div class="news-title">${th} ${badge}</div><div class="news-meta">${a.source} &middot; ${a.published?.slice(0, 10) || ''}</div></div>`;
     }).join('');
   } else { ne.innerHTML = '<p style="color:var(--muted)">No news available</p>'; }
+
+  // New features — async fetches in parallel (non-blocking)
+  const allSymbols = analytics.holdings.filter(h => !h.error).map(h => h.symbol);
+  fetchAndRenderHolders(allSymbols);
+  fetchAndRenderRegime();
+  fetchAndRenderEvents(allSymbols);
+  fetchAndRenderQuality();
+
+  // Build navigation bar
+  buildNavBar();
+}
+
+// ── Factor Attribution (CAPM decomposition) ────────────────
+function renderFactorAttribution(analytics) {
+  const p = document.getElementById('factorPanel');
+  const s = analytics.summary;
+  if (s.portfolio_beta == null || s.portfolio_alpha == null || s.portfolio_geom_return == null || s.rf_annual_pct == null) {
+    p.style.display = 'none'; return;
+  }
+  p.style.display = 'block';
+  const rp = s.portfolio_geom_return;
+  const rf = s.rf_annual_pct / 100;
+  const alpha = s.portfolio_alpha;
+  const beta = s.portfolio_beta;
+  const excess = rp - rf;
+  const betaContrib = excess - alpha;
+  const impliedRm = beta !== 0 ? rf + betaContrib / beta : null;
+  const box = document.getElementById('factorAttribution');
+  const verdict = alpha > 0.005
+    ? 'Positive alpha: the portfolio is outperforming what its beta would predict. Some skill or some luck beyond pure market exposure.'
+    : alpha < -0.005
+      ? 'Negative alpha: the portfolio is underperforming what its beta would predict. Idiosyncratic bets have cost more than they earned.'
+      : 'Near zero alpha: returns are almost entirely explained by market exposure, with negligible idiosyncratic contribution.';
+  box.innerHTML = `
+    <div class="risk-grid">
+      <div class="risk-card"><div class="risk-label">Portfolio Return</div><div class="risk-value ${rp >= 0 ? 'positive' : 'negative'}">${(rp * 100).toFixed(2)}%</div><div class="risk-sub">geometric annualised</div></div>
+      <div class="risk-card"><div class="risk-label">Risk Free Rate</div><div class="risk-value">${(rf * 100).toFixed(2)}%</div><div class="risk-sub">10Y Treasury</div></div>
+      <div class="risk-card"><div class="risk-label">Excess Return</div><div class="risk-value ${excess >= 0 ? 'positive' : 'negative'}">${(excess * 100).toFixed(2)}%</div><div class="risk-sub">R_p minus Rf</div></div>
+      <div class="risk-card ${betaContrib >= 0 ? 'ok' : 'danger'}"><div class="risk-label">Beta Contribution</div><div class="risk-value ${betaContrib >= 0 ? 'positive' : 'negative'}">${(betaContrib * 100).toFixed(2)}%</div><div class="risk-sub">${beta.toFixed(2)} times market excess</div></div>
+      <div class="risk-card ${alpha >= 0 ? 'ok' : 'danger'}"><div class="risk-label">Alpha (Skill)</div><div class="risk-value ${alpha >= 0 ? 'positive' : 'negative'}">${(alpha * 100).toFixed(2)}%</div><div class="risk-sub">idiosyncratic residual</div></div>
+      ${impliedRm != null ? `<div class="risk-card"><div class="risk-label">Implied Market Return</div><div class="risk-value">${(impliedRm * 100).toFixed(2)}%</div><div class="risk-sub">SPY annualised</div></div>` : ''}
+    </div>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg);border-radius:8px;font-size:0.82rem;line-height:1.7">
+      <strong>CAPM decomposition:</strong> R_p minus Rf equals beta times (R_m minus Rf) plus alpha.<br>
+      <span style="color:var(--muted)">${(excess * 100).toFixed(2)}% excess return equals ${(betaContrib * 100).toFixed(2)}% beta contribution plus ${(alpha * 100).toFixed(2)}% alpha.</span><br><br>
+      ${verdict}
+    </div>`;
+}
+
+// ── Tariff Exposure (AAPL China cost of goods sold shock) ──
+function renderTariff(analytics) {
+  const p = document.getElementById('tariffPanel');
+  const te = analytics.summary && analytics.summary.tariff_exposure;
+  if (!te) { p.style.display = 'none'; return; }
+  p.style.display = 'block';
+  const port = te.portfolio_impact_pct;
+  const aapl = te.aapl_price_impact_pct;
+  document.getElementById('tariffBox').innerHTML = `
+    <div class="risk-grid">
+      <div class="risk-card"><div class="risk-label">Tariff Rate</div><div class="risk-value">${te.tariff_rate_pct.toFixed(0)}%</div><div class="risk-sub">scenario input</div></div>
+      <div class="risk-card"><div class="risk-label">Pass Through</div><div class="risk-value">${te.pass_through_pct.toFixed(0)}%</div><div class="risk-sub">borne by consumer</div></div>
+      <div class="risk-card warning"><div class="risk-label">AAPL Earnings Hit</div><div class="risk-value negative">${te.earnings_reduction_pct.toFixed(2)}%</div><div class="risk-sub">of net income</div></div>
+      <div class="risk-card danger"><div class="risk-label">AAPL Price Impact</div><div class="risk-value negative">${aapl.toFixed(2)}%</div><div class="risk-sub">constant P over E translation</div></div>
+      <div class="risk-card ${Math.abs(port) > 5 ? 'danger' : 'warning'}"><div class="risk-label">Portfolio Impact</div><div class="risk-value negative">${port.toFixed(2)}%</div><div class="risk-sub">weight adjusted</div></div>
+    </div>
+    <div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:0.78rem;color:var(--muted);line-height:1.6">
+      <strong style="color:var(--text)">Model inputs:</strong> China COGS $${te.assumptions.china_cogs_bn}B, AAPL net income $${te.assumptions.net_income_bn}B, reference PE ${te.assumptions.pe_ratio_reference}, translation: ${te.assumptions.translation}.<br>
+      Dollar hit equals tariff rate times China COGS times (1 minus pass through), divided by net income gives earnings drop percent, which under constant PE equals the price drop percent.
+    </div>`;
+}
+
+// ── Tax Liability (per holding LTCG at 23.8 percent) ───────
+function renderTaxPanel(analytics) {
+  const p = document.getElementById('taxPanel');
+  const taxable = (analytics.holdings || []).filter(h => !h.error && h.tax);
+  if (!taxable.length) { p.style.display = 'none'; return; }
+  p.style.display = 'block';
+  let totalOwed = 0, totalBenefit = 0, totalAfterTax = 0;
+  const rows = taxable.map(h => {
+    const t = h.tax;
+    totalOwed += t.tax_owed || 0;
+    totalBenefit += t.loss_benefit || 0;
+    totalAfterTax += t.after_tax_gain || 0;
+    if (t.loss_benefit > 0) {
+      return `<tr>
+        <td><strong>${h.symbol}</strong></td>
+        <td class="negative">$${fmt(h.gain_loss)}</td>
+        <td>$0.00</td>
+        <td class="positive">$${fmt(t.loss_benefit)}</td>
+        <td class="negative">$${fmt(h.gain_loss)}</td>
+        <td><span style="color:var(--yellow);font-size:0.72rem">Harvestable loss</span></td>
+      </tr>`;
+    }
+    return `<tr>
+      <td><strong>${h.symbol}</strong></td>
+      <td class="positive">$${fmt(h.gain_loss)}</td>
+      <td class="negative">$${fmt(t.tax_owed || 0)}</td>
+      <td>$0.00</td>
+      <td class="positive">$${fmt(t.after_tax_gain || 0)}</td>
+      <td><span style="color:var(--muted);font-size:0.72rem">LTCG 23.8%</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('taxBox').innerHTML = `
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>Symbol</th><th>Unrealised P and L</th><th>Tax Owed</th><th>Loss Benefit</th><th>After Tax</th><th>Type</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--border);font-weight:700">
+            <td>Total</td>
+            <td></td>
+            <td class="negative">$${fmt(totalOwed)}</td>
+            <td class="positive">$${fmt(totalBenefit)}</td>
+            <td class="${totalAfterTax + totalBenefit >= 0 ? 'positive' : 'negative'}">$${fmt(totalAfterTax + totalBenefit)}</td>
+            <td style="font-size:0.72rem;color:var(--muted)">net of tax and harvesting</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--muted);line-height:1.6">
+      Rate is 23.8 percent: 20 percent federal long term capital gains plus 3.8 percent net investment income tax. All positions assumed held longer than one year because the backend has no purchase date.
+    </div>`;
+}
+
+// ── Legendary Investors ───────────────────────────────────
+let _holdersTickers = [];  // current set of tickers being displayed
+let _holdersData = {};     // cached holder data across lookups
+
+async function fetchAndRenderHolders(symbols) {
+  const stockSyms = symbols.filter(s => !s.includes('-USD'));
+  _holdersTickers = [...stockSyms];
+  _renderHoldersTags();
+  if (!stockSyms.length) {
+    document.getElementById('holdersResults').innerHTML = '<p style="color:var(--muted)">No stock tickers in portfolio (crypto does not have 13F filings).</p>';
+    return;
+  }
+  await _fetchHolders(stockSyms);
+}
+
+async function _fetchHolders(tickers) {
+  const box = document.getElementById('holdersResults');
+  box.innerHTML = '<div class="loader">Loading institutional holders</div>';
+  try {
+    const r = await fetch(`/api/holders?tickers=${tickers.join(',')}`);
+    if (!r.ok) { box.innerHTML = '<p style="color:var(--red)">Failed to load holders data.</p>'; return; }
+    const d = await r.json();
+    // Merge into cache
+    Object.assign(_holdersData, d);
+    // Build display data from all cached tickers that are in our current list
+    const display = {};
+    for (const t of _holdersTickers) {
+      if (_holdersData[t]) display[t] = _holdersData[t];
+    }
+    if (!Object.keys(display).length) {
+      box.innerHTML = '<p style="color:var(--muted)">No institutional holder data found.</p>';
+      return;
+    }
+    renderHoldersPanel(display);
+  } catch { box.innerHTML = '<p style="color:var(--red)">Error fetching holders.</p>'; }
+}
+
+function addHolderTicker() {
+  const input = document.getElementById('holdersSearch');
+  const raw = input.value.trim().toUpperCase();
+  if (!raw) return;
+  const newTickers = raw.split(/[,\s]+/).filter(t => t && !t.includes('-USD'));
+  if (!newTickers.length) { input.value = ''; return; }
+  const toFetch = newTickers.filter(t => !_holdersTickers.includes(t));
+  _holdersTickers = [...new Set([..._holdersTickers, ...newTickers])];
+  _renderHoldersTags();
+  input.value = '';
+  if (toFetch.length) {
+    _fetchHolders(toFetch);
+  } else {
+    // All already cached, just re-render
+    const display = {};
+    for (const t of _holdersTickers) {
+      if (_holdersData[t]) display[t] = _holdersData[t];
+    }
+    renderHoldersPanel(display);
+  }
+}
+
+function removeHolderTicker(sym) {
+  _holdersTickers = _holdersTickers.filter(t => t !== sym);
+  _renderHoldersTags();
+  const display = {};
+  for (const t of _holdersTickers) {
+    if (_holdersData[t]) display[t] = _holdersData[t];
+  }
+  if (Object.keys(display).length) {
+    renderHoldersPanel(display);
+  } else {
+    document.getElementById('holdersResults').innerHTML = '<p style="color:var(--muted)">Search a ticker above to see institutional holders.</p>';
+  }
+}
+
+function _renderHoldersTags() {
+  const el = document.getElementById('holdersTags');
+  el.innerHTML = _holdersTickers.map(t =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.75rem;font-weight:600">
+      ${t} <span onclick="removeHolderTicker('${t}')" style="cursor:pointer;color:var(--red);font-size:0.68rem;margin-left:2px">x</span>
+    </span>`
+  ).join('');
+}
+
+function renderHoldersPanel(data) {
+  const box = document.getElementById('holdersResults');
+  let html = '';
+
+  // Legendary matches grouped by investor
+  const legendaryMap = {};
+  for (const [sym, info] of Object.entries(data)) {
+    for (const leg of (info.legendary || [])) {
+      const key = leg.investor_name;
+      if (!legendaryMap[key]) legendaryMap[key] = { ...leg, stocks: [] };
+      legendaryMap[key].stocks.push({
+        symbol: sym,
+        shares: leg.shares,
+        pct_held: leg.pct_held,
+        value: leg.value,
+        date_reported: leg.date_reported,
+      });
+    }
+  }
+
+  if (Object.keys(legendaryMap).length) {
+    html += '<h3 style="margin-bottom:10px;color:var(--accent2)">Legendary investors in your stocks</h3>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-bottom:20px">';
+    for (const [name, inv] of Object.entries(legendaryMap)) {
+      const stockLines = inv.stocks.map(s =>
+        `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(35,38,64,0.3)">
+          <strong>${s.symbol}</strong>
+          <span>${s.shares ? Number(s.shares).toLocaleString() + ' shares' : ''} ${s.pct_held ? '(' + s.pct_held + '%)' : ''}</span>
+          <span style="color:var(--muted);font-size:0.72rem">${s.value ? '$' + Number(s.value).toLocaleString() : ''}</span>
+        </div>`
+      ).join('');
+      html += `<div class="investor-card">
+        <div class="inv-name">${name}</div>
+        <div class="inv-fund">${inv.fund_name}</div>
+        <div class="inv-style">${inv.style}</div>
+        <div class="inv-detail">${stockLines}</div>
+      </div>`;
+    }
+    html += '</div>';
+  } else {
+    html += '<p style="color:var(--muted);margin-bottom:16px">No legendary investor matches found in your portfolio stocks. This does not mean top funds do not hold them, only that none of the 25 tracked legends appear in the current 13F data.</p>';
+  }
+
+  // Top institutional holders table per symbol
+  html += '<h3 style="margin-bottom:8px">Top Institutional Holders</h3>';
+  for (const [sym, info] of Object.entries(data)) {
+    if (!info.top_holders || !info.top_holders.length) continue;
+    html += `<details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600;font-size:0.85rem;padding:6px 0">${sym} <span style="color:var(--muted);font-weight:400">(${info.total_institutional_holders} institutions)</span></summary>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Holder</th><th>Shares</th><th>% Out</th><th>Value</th><th>Reported</th></tr></thead>
+        <tbody>${info.top_holders.map(h => `<tr>
+          <td>${h.holder}</td>
+          <td>${h.shares ? Number(h.shares).toLocaleString() : '-'}</td>
+          <td>${h.pct_held}%</td>
+          <td>${h.value ? '$' + Number(h.value).toLocaleString() : '-'}</td>
+          <td style="color:var(--muted)">${h.date_reported}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </details>`;
+  }
+  box.innerHTML = html;
+}
+
+// ── What-If Trade Simulator ───────────────────────────────
+async function runWhatIf() {
+  const sym = document.getElementById('whatifSymbol').value.trim().toUpperCase();
+  const shares = parseFloat(document.getElementById('whatifShares').value) || 0;
+  const action = document.getElementById('whatifAction').value;
+  const box = document.getElementById('whatifResults');
+  if (!sym || shares <= 0) { box.innerHTML = '<p style="color:var(--red)">Enter a valid symbol and share count.</p>'; return; }
+
+  const valid = holdings.filter(h => h.symbol && h.symbol.trim() && h.shares > 0);
+  if (!valid.length) { box.innerHTML = '<p style="color:var(--red)">Analyze a portfolio first.</p>'; return; }
+
+  box.innerHTML = '<div class="loader">Simulating trade</div>';
+  try {
+    const r = await fetch('/api/whatif', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holdings: valid, trade_symbol: sym, trade_shares: shares, trade_action: action }),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Simulation failed'); }
+    const d = await r.json();
+    const b = d.before, a = d.after, dl = d.delta;
+    const metrics = [
+      { key: 'sharpe', label: 'Sharpe', dp: 4 },
+      { key: 'volatility', label: 'Volatility', dp: 2, pct: true },
+      { key: 'beta', label: 'Beta', dp: 4 },
+      { key: 'hhi', label: 'HHI', dp: 4 },
+      { key: 'effective_n', label: 'Effective N', dp: 2 },
+      { key: 'var_95_pct', label: 'VaR 95%', dp: 2, pct: true },
+    ];
+    const signCls = v => v > 0.001 ? 'positive' : v < -0.001 ? 'negative' : '';
+    // For vol, hhi, var: decrease is good (green). For sharpe, eff_n: increase is good.
+    const improveCls = (key, delta) => {
+      const goodUp = ['sharpe', 'effective_n'];
+      const goodDown = ['volatility', 'hhi', 'var_95_pct', 'beta'];
+      if (goodUp.includes(key)) return delta > 0.001 ? 'positive' : delta < -0.001 ? 'negative' : '';
+      if (goodDown.includes(key)) return delta < -0.001 ? 'positive' : delta > 0.001 ? 'negative' : '';
+      return '';
+    };
+    box.innerHTML = `
+      <div style="margin-bottom:12px;font-size:0.85rem"><strong>${action === 'buy' ? 'Buy' : 'Sell'} ${shares} ${sym}</strong>
+        <span style="color:var(--muted)"> | Portfolio value: $${fmt(b.total_value)} → $${fmt(a.total_value)}</span></div>
+      <div class="delta-grid">${metrics.map(m => {
+        const bv = b[m.key], av = a[m.key], dv = dl[m.key];
+        const fmtV = v => m.pct ? (v * 100).toFixed(m.dp) + '%' : v.toFixed(m.dp);
+        return `<div class="delta-card">
+          <div class="d-label">${m.label}</div>
+          <div class="d-before">${fmtV(bv)}</div>
+          <div class="d-after">${fmtV(av)}</div>
+          <div class="d-delta ${improveCls(m.key, dv)}">${dv >= 0 ? '+' : ''}${m.pct ? (dv * 100).toFixed(m.dp) + '%' : dv.toFixed(m.dp)}</div>
+        </div>`;
+      }).join('')}</div>`;
+  } catch (e) { box.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`; }
+}
+
+// ── Regime-Aware Risk Engine ──────────────────────────────
+async function fetchAndRenderRegime() {
+  const valid = holdings.filter(h => h.symbol && h.symbol.trim() && h.shares > 0);
+  if (!valid.length) return;
+  const p = document.getElementById('regimePanel');
+  try {
+    const r = await fetch('/api/regime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holdings: valid }),
+    });
+    if (!r.ok) { p.style.display = 'none'; return; }
+    const d = await r.json();
+    if (d.error) { p.style.display = 'none'; return; }
+    p.style.display = 'block';
+    renderRegime(d);
+  } catch { p.style.display = 'none'; }
+}
+
+function renderRegime(d) {
+  const regCls = { low: 'regime-low', normal: 'regime-normal', elevated: 'regime-elevated', crisis: 'regime-crisis' };
+  const box = document.getElementById('regimeResults');
+  const pcts = d.regime_pct || {};
+  box.innerHTML = `
+    <div class="risk-grid">
+      <div class="risk-card"><div class="risk-label">Current Regime</div>
+        <div class="risk-value"><span class="regime-badge ${regCls[d.current_regime] || ''}">${d.current_regime}</span></div>
+        <div class="risk-sub">${d.current_vol_pct}% annualised vol (${d.window_days}d rolling)</div></div>
+      <div class="risk-card danger"><div class="risk-label">Regime VaR 95%</div>
+        <div class="risk-value negative">${d.var_95_regime_conditional}%</div>
+        <div class="risk-sub">30 day, conditional on ${d.current_regime} regime</div></div>
+      <div class="risk-card warning"><div class="risk-label">Unconditional VaR 95%</div>
+        <div class="risk-value negative">${d.var_95_unconditional}%</div>
+        <div class="risk-sub">30 day, all regimes averaged</div></div>
+      <div class="risk-card"><div class="risk-label">Regime Vol</div>
+        <div class="risk-value">${d.regime_vol_annualized}%</div>
+        <div class="risk-sub">annualised, ${d.current_regime} days only</div></div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:16px;flex-wrap:wrap">
+      ${Object.entries(pcts).map(([r, pct]) => `<div style="font-size:0.78rem"><span class="regime-badge ${regCls[r] || ''}" style="font-size:0.7rem;padding:2px 8px">${r}</span> ${pct}% of history</div>`).join('')}
+    </div>`;
+
+  // Rolling vol chart
+  if (d.rolling_vol && d.rolling_vol.length > 5) {
+    const colors = d.rolling_vol.map(v => v >= 30 ? '#f87171' : v >= 20 ? '#fbbf24' : v >= 12 ? '#818cf8' : '#34d399');
+    Plotly.newPlot('regimeChart', [{
+      x: d.rolling_dates, y: d.rolling_vol, type: 'bar',
+      marker: { color: colors }, hovertemplate: '%{x}<br>Vol: %{y}%<extra></extra>',
+    }], {
+      ...PLOTLY_LAYOUT,
+      xaxis: { ...PLOTLY_LAYOUT.xaxis, title: '' },
+      yaxis: { ...PLOTLY_LAYOUT.yaxis, title: 'Annualised Vol (%)' },
+      shapes: [
+        { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 20, y1: 20, line: { color: '#fbbf24', width: 1, dash: 'dash' } },
+        { type: 'line', x0: 0, x1: 1, xref: 'paper', y0: 30, y1: 30, line: { color: '#f87171', width: 1, dash: 'dash' } },
+      ],
+      margin: { ...PLOTLY_LAYOUT.margin, t: 10 },
+    }, PLOTLY_CONFIG);
+  }
+}
+
+// ── Event-Risk Calendar ───────────────────────────────────
+async function fetchAndRenderEvents(symbols) {
+  const stockSyms = symbols.filter(s => !s.includes('-USD'));
+  const p = document.getElementById('eventsPanel');
+  if (!stockSyms.length) { p.style.display = 'none'; return; }
+  try {
+    const r = await fetch(`/api/earnings?tickers=${stockSyms.join(',')}`);
+    if (!r.ok) { p.style.display = 'none'; return; }
+    const events = await r.json();
+    if (!events || !events.length) { p.style.display = 'none'; return; }
+    p.style.display = 'block';
+    renderEvents(events);
+  } catch { p.style.display = 'none'; }
+}
+
+function renderEvents(events) {
+  const box = document.getElementById('eventsResults');
+  const rows = events.map(e => {
+    const rets = e.historical_earnings_returns || [];
+    const retBars = rets.map(r =>
+      `<span style="display:inline-block;padding:2px 6px;margin:1px;border-radius:3px;font-size:0.72rem;background:${r >= 0 ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)'};color:${r >= 0 ? 'var(--green)' : 'var(--red)'}">${r >= 0 ? '+' : ''}${r}%</span>`
+    ).join('');
+    const avgCls = e.avg_earnings_day_return != null ? (e.avg_earnings_day_return >= 0 ? 'positive' : 'negative') : '';
+    return `<tr>
+      <td><strong>${e.symbol}</strong></td>
+      <td>${e.next_earnings || '<span style="color:var(--muted)">unknown</span>'}</td>
+      <td class="${avgCls}">${e.avg_earnings_day_return != null ? (e.avg_earnings_day_return >= 0 ? '+' : '') + e.avg_earnings_day_return + '%' : 'N/A'}</td>
+      <td>${e.std_earnings_day_return != null ? e.std_earnings_day_return + '%' : 'N/A'}</td>
+      <td>${e.n_events}</td>
+      <td style="max-width:300px;white-space:normal">${retBars || '<span style="color:var(--muted)">no history</span>'}</td>
+    </tr>`;
+  }).join('');
+  box.innerHTML = `<div style="overflow-x:auto"><table>
+    <thead><tr><th>Symbol</th><th>Next Earnings</th><th>Avg Return</th><th>Std Dev</th><th>Events</th><th>Historical Returns</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+// ── Data Quality Dashboard ────────────────────────────────
+async function fetchAndRenderQuality() {
+  const valid = holdings.filter(h => h.symbol && h.symbol.trim() && h.shares > 0);
+  if (!valid.length) return;
+  const p = document.getElementById('qualityPanel');
+  try {
+    const r = await fetch('/api/data-quality', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ holdings: valid }),
+    });
+    if (!r.ok) { p.style.display = 'none'; return; }
+    const d = await r.json();
+    if (!d || !d.tickers) { p.style.display = 'none'; return; }
+    p.style.display = 'block';
+    renderQuality(d);
+  } catch { p.style.display = 'none'; }
+}
+
+function renderQuality(d) {
+  const box = document.getElementById('qualityResults');
+  const scoreCls = s => s >= 80 ? 'quality-good' : s >= 50 ? 'quality-ok' : 'quality-bad';
+  const scoreLabel = s => s >= 80 ? 'Good' : s >= 50 ? 'Fair' : 'Poor';
+
+  const rows = Object.entries(d.tickers).map(([sym, t]) => {
+    if (t.status === 'no_data') {
+      return `<tr><td><strong>${sym}</strong></td><td colspan="6" style="color:var(--red)">No data available</td></tr>`;
+    }
+    const gaps = (t.gaps || []).map(g => `${g.from} to ${g.to} (${g.days}d)`).join(', ');
+    return `<tr>
+      <td><strong>${sym}</strong></td>
+      <td>${t.actual_bars} / ${t.expected_bars}</td>
+      <td>${t.missing_pct}%</td>
+      <td>${t.zero_volume_days}</td>
+      <td>${t.staleness_days != null ? t.staleness_days + 'd' : 'N/A'}</td>
+      <td style="max-width:200px;white-space:normal;font-size:0.72rem">${gaps || '<span style="color:var(--green)">none</span>'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="quality-bar" style="width:80px"><div class="quality-fill ${scoreCls(t.quality_score)}" style="width:${t.quality_score}%"></div></div>
+          <span style="font-weight:600;font-size:0.82rem">${t.quality_score}</span>
+          <span style="font-size:0.68rem;color:var(--muted)">${scoreLabel(t.quality_score)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:0.85rem;font-weight:600">Overall Score</div>
+      <div class="quality-bar" style="width:120px"><div class="quality-fill ${scoreCls(d.overall_score)}" style="width:${d.overall_score}%"></div></div>
+      <span style="font-size:1.1rem;font-weight:700">${d.overall_score}</span>
+      <span style="font-size:0.78rem;color:var(--muted)">${scoreLabel(d.overall_score)} (${d.ticker_count} tickers)</span>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Symbol</th><th>Bars (actual/expected)</th><th>Missing</th><th>Zero Vol Days</th><th>Staleness</th><th>Gaps</th><th>Quality Score</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
 }
 
 // ── Candlestick Charts ─────────────────────────────────────
@@ -790,14 +2098,32 @@ function renderStressTest(st) {
   p.style.display = 'block';
   const el = document.getElementById('stressResults');
   el.innerHTML = `<div class="stress-row header"><div>Scenario</div><div>Market</div><div>Your Portfolio</div><div>Estimated Loss</div></div>
-    ${st.scenarios.map(s => { const sv = s.portfolio_return_pct < -30 ? 'negative' : s.portfolio_return_pct < -15 ? 'neutral' : '';
-      return `<div class="stress-row"><div><div class="stress-name">${s.name}</div><div class="stress-desc">${s.description}</div></div><div class="negative">${s.market_return_pct}%</div><div class="${sv}">${s.portfolio_return_pct}%</div><div class="negative">$${fmt(Math.abs(s.portfolio_loss_dollar))}</div></div>`;
+    ${st.scenarios.map(sc => {
+      const sv = sc.portfolio_return_pct < -30 ? 'negative' : sc.portfolio_return_pct < -15 ? 'neutral' : '';
+      return `<div class="stress-row">
+        <div><div class="stress-name">${sc.name}</div><div class="stress-desc">${sc.description}${sc.period ? ' (' + sc.period + ')' : ''}</div></div>
+        <div class="negative">${sc.market_return_pct}%</div>
+        <div class="${sv}">${sc.portfolio_return_pct}%</div>
+        <div class="negative">$${fmt(Math.abs(sc.portfolio_loss_dollar))}</div>
+      </div>`;
     }).join('')}`;
   if (st.betas && Object.keys(st.betas).length > 1) {
-    el.innerHTML += `<div style="margin-top:16px"><h3>Per-Holding Beta</h3><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+    el.innerHTML += `<div style="margin-top:16px"><h3>Per Holding Beta</h3><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
       ${Object.entries(st.betas).map(([sym, b]) => `<div class="risk-card ${b > 1.2 ? 'danger' : b < 0.8 ? 'ok' : 'warning'}" style="min-width:100px"><div class="risk-label">${sym}</div><div class="risk-value">${b.toFixed(2)}</div><div class="risk-sub">${b > 1.2 ? 'High risk' : b < 0.8 ? 'Defensive' : 'Moderate'}</div></div>`).join('')}
     </div></div>`;
   }
+  // Reverse stress test
+  const rev = st.reverse_stress_test;
+  const revBox = document.getElementById('reverseStressBox');
+  if (rev) {
+    revBox.innerHTML = `<h3>Reverse Stress Test</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:8px">
+        <div class="risk-card warning"><div class="risk-label">Loss Threshold</div><div class="risk-value negative">${rev.loss_threshold_pct.toFixed(0)}%</div><div class="risk-sub">portfolio drawdown target</div></div>
+        <div class="risk-card danger"><div class="risk-label">Required Market Drop</div><div class="risk-value negative">${rev.market_drop_pct_needed.toFixed(1)}%</div><div class="risk-sub">SPY would need to fall</div></div>
+        <div class="risk-card"><div class="risk-label">Portfolio Beta</div><div class="risk-value">${rev.portfolio_beta.toFixed(2)}</div><div class="risk-sub">canonical 252d OLS</div></div>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:0.8rem;color:var(--muted);line-height:1.6">${rev.explanation}</div>`;
+  } else { revBox.innerHTML = ''; }
 }
 
 // ── Allocation ─────────────────────────────────────────────
@@ -812,32 +2138,251 @@ function fmt(n) { return Number(n).toLocaleString('en-US', { minimumFractionDigi
 
 // ── Options ────────────────────────────────────────────────
 async function onOptionsSymbolChange() {
-  const sym = document.getElementById('optionsSymbol').value; if (!sym) return;
-  try { const r = await fetch(`/api/options/${sym}`); if (!r.ok) { document.getElementById('callsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="color:var(--muted)">No data</td></tr>'; document.getElementById('putsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="color:var(--muted)">No data</td></tr>'; return; }
-    const d = await r.json(); document.getElementById('optionsExpiry').innerHTML = d.expirations.map(e => `<option value="${e}" ${e === d.expiration ? 'selected' : ''}>${e}</option>`).join(''); renderOptionsChain(d);
-  } catch (e) { console.error(e); }
+  const sym = document.getElementById('optionsSymbol').value;
+  if (!sym) return;
+  try {
+    const r = await fetch(`/api/options/${sym}`);
+    if (!r.ok) { _emptyChain(); return; }
+    const d = await r.json();
+    document.getElementById('optionsExpiry').innerHTML = (d.expirations || []).map(e => `<option value="${e}" ${e === d.expiration ? 'selected' : ''}>${e}</option>`).join('');
+    renderOptionsChain(d);
+  } catch (e) { console.error(e); _emptyChain(); }
 }
 async function fetchOptions() {
-  const sym = document.getElementById('optionsSymbol').value, exp = document.getElementById('optionsExpiry').value;
+  const sym = document.getElementById('optionsSymbol').value;
+  const exp = document.getElementById('optionsExpiry').value;
   if (!sym || !exp) return;
-  try { const r = await fetch(`/api/options/${sym}?expiration=${exp}`); if (!r.ok) return; renderOptionsChain(await r.json()); } catch (e) { console.error(e); }
+  try {
+    const r = await fetch(`/api/options/${sym}?expiration=${exp}`);
+    if (!r.ok) { _emptyChain(); return; }
+    renderOptionsChain(await r.json());
+  } catch (e) { console.error(e); _emptyChain(); }
+}
+function _emptyChain() {
+  document.getElementById('callsTable').querySelector('tbody').innerHTML = '<tr><td colspan="11" style="color:var(--muted)">No data</td></tr>';
+  document.getElementById('putsTable').querySelector('tbody').innerHTML = '<tr><td colspan="11" style="color:var(--muted)">No data</td></tr>';
+  document.getElementById('optionsSummary').innerHTML = '';
 }
 function renderOptionsChain(d) {
-  function rt(id, cs) { const tb = document.getElementById(id).querySelector('tbody'); if (!cs?.length) { tb.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">No contracts</td></tr>'; return; }
-    tb.innerHTML = cs.map(c => `<tr><td>$${c.strike}</td><td>$${c.lastPrice}</td><td>$${c.bid}</td><td>$${c.ask}</td><td>${(c.impliedVolatility * 100).toFixed(1)}%</td><td>${c.volume}</td><td>${c.openInterest}</td></tr>`).join(''); }
-  rt('callsTable', d.calls); rt('putsTable', d.puts);
+  // Summary banner with put call ratio, IV skew, underlying spot
+  const pcOI = d.put_call_ratio_oi;
+  const pcVol = d.put_call_ratio_volume;
+  const pcCls = pcOI != null && pcOI > 1 ? 'negative' : pcOI != null && pcOI < 0.7 ? 'positive' : 'neutral';
+  const pcInterp = pcOI == null ? '' : pcOI > 1 ? 'bearish positioning' : pcOI < 0.7 ? 'bullish positioning' : 'neutral positioning';
+  const skew = d.iv_skew;
+  const skewCls = skew && skew.skew_points > 1 ? 'negative' : skew && skew.skew_points < -1 ? 'positive' : 'neutral';
+  const summary = document.getElementById('optionsSummary');
+  summary.innerHTML = `
+    <div class="risk-grid">
+      <div class="risk-card"><div class="risk-label">Underlying</div><div class="risk-value">${d.underlying_price != null ? '$' + d.underlying_price.toFixed(2) : 'N/A'}</div><div class="risk-sub">${d.symbol} spot</div></div>
+      <div class="risk-card"><div class="risk-label">Days to Expiry</div><div class="risk-value">${d.days_to_expiry || 'N/A'}</div><div class="risk-sub">${d.expiration || ''}</div></div>
+      <div class="risk-card"><div class="risk-label">Risk Free Rate</div><div class="risk-value">${d.risk_free_rate != null ? (d.risk_free_rate * 100).toFixed(2) + '%' : 'N/A'}</div><div class="risk-sub">10Y Treasury input</div></div>
+      <div class="risk-card ${pcCls === 'negative' ? 'danger' : pcCls === 'positive' ? 'ok' : 'warning'}">
+        <div class="risk-label">Put Call Ratio (OI)</div>
+        <div class="risk-value ${pcCls}">${pcOI != null ? pcOI.toFixed(2) : 'N/A'}</div>
+        <div class="risk-sub">${pcInterp}${pcVol != null ? ', vol ratio ' + pcVol.toFixed(2) : ''}</div>
+      </div>
+      ${skew ? `<div class="risk-card ${skewCls === 'negative' ? 'danger' : skewCls === 'positive' ? 'ok' : 'warning'}">
+        <div class="risk-label">IV Skew (10% OTM)</div>
+        <div class="risk-value ${skewCls}">${skew.skew_points >= 0 ? '+' : ''}${skew.skew_points.toFixed(2)} pts</div>
+        <div class="risk-sub">put IV ${(skew.put_iv * 100).toFixed(1)}% over call IV ${(skew.call_iv * 100).toFixed(1)}%</div>
+      </div>` : ''}
+    </div>
+    ${skew ? `<div style="margin-top:10px;font-size:0.78rem;color:var(--muted)">${skew.interpretation}</div>` : ''}`;
+
+  function rt(id, cs) {
+    const tb = document.getElementById(id).querySelector('tbody');
+    if (!cs || !cs.length) { tb.innerHTML = '<tr><td colspan="11" style="color:var(--muted)">No contracts</td></tr>'; return; }
+    tb.innerHTML = cs.map(c => {
+      const g = c.greeks || {};
+      const fmtG = (v, dp = 3) => (v == null || isNaN(v)) ? '-' : Number(v).toFixed(dp);
+      return `<tr>
+        <td>$${c.strike}</td>
+        <td>$${c.lastPrice}</td>
+        <td>$${c.bid}</td>
+        <td>$${c.ask}</td>
+        <td>${(c.impliedVolatility * 100).toFixed(1)}%</td>
+        <td>${fmtG(g.delta)}</td>
+        <td>${fmtG(g.gamma, 4)}</td>
+        <td>${fmtG(g.theta)}</td>
+        <td>${fmtG(g.vega)}</td>
+        <td>${c.volume}</td>
+        <td>${c.openInterest}</td>
+      </tr>`;
+    }).join('');
+  }
+  rt('callsTable', d.calls);
+  rt('putsTable', d.puts);
 }
 
 // ── Export ──────────────────────────────────────────────────
 function exportCSV() {
   if (!lastAnalysisData) return;
   const h = lastAnalysisData.analytics.holdings.filter(h => !h.error);
-  const hd = ['Symbol','Price','Value','Gain/Loss %','Volatility','Sharpe','Sortino','Beta','Alpha','Max Drawdown','SMA 20','SMA 50','RSI 14'];
-  const rows = h.map(s => [s.symbol, s.current_price, s.position_value, s.gain_loss_pct + '%', (s.volatility * 100).toFixed(1) + '%', s.sharpe_ratio, s.sortino_ratio, s.beta != null ? s.beta.toFixed(2) : 'N/A', s.alpha != null ? (s.alpha * 100).toFixed(2) + '%' : 'N/A', (s.max_drawdown * 100).toFixed(1) + '%', s.sma_20, s.sma_50, s.rsi_14]);
+  const hd = ['Symbol','Price','Value','Price Return %','Total Return %','Dividends Received','Volatility','Sharpe','Sortino','Beta','Alpha','Max Drawdown','SMA 20','SMA 50','RSI 14','RSI Label','Tax Owed','Loss Benefit','After Tax Gain'];
+  const rows = h.map(s => [
+    s.symbol,
+    s.current_price,
+    s.position_value,
+    s.gain_loss_pct + '%',
+    (s.total_return_pct != null ? s.total_return_pct + '%' : 'N/A'),
+    s.dividends_received != null ? s.dividends_received : 0,
+    (s.volatility * 100).toFixed(1) + '%',
+    s.sharpe_ratio,
+    s.sortino_ratio,
+    s.beta != null ? s.beta.toFixed(2) : 'N/A',
+    s.alpha != null ? (s.alpha * 100).toFixed(2) + '%' : 'N/A',
+    (s.max_drawdown * 100).toFixed(1) + '%',
+    s.sma_20,
+    s.sma_50,
+    s.rsi_14,
+    s.rsi_label || 'neutral',
+    s.tax ? s.tax.tax_owed : 0,
+    s.tax ? s.tax.loss_benefit : 0,
+    s.tax ? s.tax.after_tax_gain : 0,
+  ]);
   _download([hd, ...rows].map(r => r.join(',')).join('\n'), `portfolio_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
 }
 function exportJSON() { if (!lastAnalysisData) return; _download(JSON.stringify(lastAnalysisData, null, 2), `portfolio_${new Date().toISOString().slice(0,10)}.json`, 'application/json'); }
 function _download(c, f, t) { const b = new Blob([c], { type: t }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = f; a.click(); URL.revokeObjectURL(u); }
+
+// ── Admin Panel ──────────────────────────────────────────────
+let _adminData = null;
+let _adminTab = 'users';
+let _adminUserId = null;
+
+function openAdmin() {
+  _adminUserId = null;
+  document.getElementById('adminLoginGate').style.display = '';
+  document.getElementById('adminDashboard').style.display = 'none';
+  document.getElementById('adminUsername').value = '';
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('adminLoginError').textContent = '';
+  document.getElementById('adminOverlay').classList.add('active');
+  document.getElementById('adminUsername').focus();
+}
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('active');
+  _adminUserId = null;
+}
+
+async function doAdminLogin() {
+  const username = document.getElementById('adminUsername').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const errorEl = document.getElementById('adminLoginError');
+  errorEl.textContent = '';
+  if (!username || !password) { errorEl.textContent = 'Enter username and password'; return; }
+  try {
+    const r = await fetch('/api/db/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (r.status === 401) { errorEl.textContent = 'Invalid credentials'; return; }
+    if (r.status === 403) { errorEl.textContent = 'Access denied: not an admin account'; return; }
+    if (!r.ok) { errorEl.textContent = 'Login failed'; return; }
+    const data = await r.json();
+    _adminUserId = data.user_id;
+    document.getElementById('adminLoginGate').style.display = 'none';
+    document.getElementById('adminDashboard').style.display = '';
+    loadAdminData();
+  } catch (e) {
+    errorEl.textContent = 'Connection error';
+  }
+}
+
+async function loadAdminData() {
+  const content = document.getElementById('adminContent');
+  content.innerHTML = '<div class="loader">Loading database</div>';
+  try {
+    const r = await fetch(`/api/db/admin/overview?user_id=${encodeURIComponent(_adminUserId)}`);
+    if (r.status === 403) { closeAdmin(); openAdmin(); return; }
+    if (!r.ok) throw new Error('Failed to load');
+    _adminData = await r.json();
+    renderAdminStats();
+    renderAdminTable(_adminTab);
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+}
+
+function renderAdminStats() {
+  if (!_adminData) return;
+  const s = _adminData.stats;
+  document.getElementById('adminStats').innerHTML = [
+    { label: 'Users', value: s.users },
+    { label: 'Portfolios', value: s.portfolios },
+    { label: 'Holdings', value: s.holdings },
+    { label: 'Snapshots', value: s.snapshots },
+    { label: 'Trades', value: s.trades },
+    { label: 'Watchlist', value: s.watchlist },
+    { label: 'Alerts', value: s.alerts },
+    { label: 'Audit Events', value: s.audit_events },
+  ].map(x => `<div class="admin-stat"><div class="a-label">${x.label}</div><div class="a-value">${x.value}</div></div>`).join('');
+}
+
+function switchAdminTab(tab) {
+  _adminTab = tab;
+  document.querySelectorAll('.admin-tab').forEach(t =>
+    t.classList.toggle('active', t.textContent.toLowerCase().replace(' ', '') === tab || t.textContent.toLowerCase().replace(' log', '') === tab)
+  );
+  // Fix active state by matching content
+  const tabs = document.querySelectorAll('.admin-tab');
+  const tabMap = ['users', 'portfolios', 'holdings', 'snapshots', 'trades', 'watchlist', 'alerts', 'audit'];
+  tabs.forEach((t, i) => t.classList.toggle('active', tabMap[i] === tab));
+  renderAdminTable(tab);
+}
+
+function renderAdminTable(tab) {
+  if (!_adminData) return;
+  const content = document.getElementById('adminContent');
+  const rows = _adminData[tab] || [];
+
+  if (!rows.length) {
+    content.innerHTML = '<p style="color:var(--muted);padding:20px 0">No data in this table yet.</p>';
+    return;
+  }
+
+  const columns = Object.keys(rows[0]);
+  const th = columns.map(c => `<th>${c.replace(/_/g, ' ')}</th>`).join('');
+  const tbody = rows.map(r => {
+    const tds = columns.map(c => {
+      let v = r[c];
+      if (v === null || v === undefined) return '<td style="color:var(--muted)">-</td>';
+      if (typeof v === 'boolean') return `<td>${v ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--red)">No</span>'}</td>`;
+      // Format timestamps
+      if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}T/)) {
+        v = v.replace('T', ' ').slice(0, 19);
+      }
+      // Format numbers
+      if (typeof v === 'number' && !Number.isInteger(v)) {
+        v = v.toFixed(4);
+      }
+      // Format large share counts
+      if (c === 'shares' && typeof v === 'number') {
+        v = v.toLocaleString();
+      }
+      if (c === 'total_value' && v) {
+        v = '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      if (c === 'avg_cost' && v) {
+        v = '$' + Number(v).toFixed(2);
+      }
+      if (c === 'target_price' && v) {
+        v = '$' + Number(v).toFixed(2);
+      }
+      if (c === 'price' && v) {
+        v = '$' + Number(v).toFixed(2);
+      }
+      return `<td>${v}</td>`;
+    }).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px">${rows.length} record${rows.length !== 1 ? 's' : ''}</div>
+    <table><thead><tr>${th}</tr></thead><tbody>${tbody}</tbody></table>`;
+}
 </script>
 </body>
 </html>
