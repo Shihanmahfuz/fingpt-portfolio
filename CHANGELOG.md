@@ -4,6 +4,35 @@ All notable changes to Veris — Portfolio Intelligence.
 
 ---
 
+## v2.1.0 (2026-04-17)
+
+Minute-resolution intraday data. Veris now covers the full time spectrum from 1-minute ticks to daily bars.
+
+### Added
+
+**Intraday Tape** (Shihan Mahfuz)
+- New `GET /api/intraday/{symbol}` endpoint returning minute-resolution OHLCV bars
+- Eight Yahoo intraday intervals supported: 1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h
+- Interval-aware default periods so Yahoo's caps are never hit (1m→1d, 5m→5d, 30m→1mo, 1h→3mo)
+- UTC-normalized ISO-8601 timestamps on every bar
+- Freshness metadata on newest bar: `fetched_at`, `age_seconds`, `is_stale`, `interval`
+- Staleness threshold scales with bar size: 3× interval for stocks, 2× for crypto (trades 24/7)
+- Interval-tuned TTL caching: 30s for 1m, 120s for 2–5m, 300s for coarser intervals
+- Input validation returns 400 on invalid intervals with the allowed list
+- 400 validation errors distinct from 404 no-data responses
+
+**Frontend — Intraday Tape Panel**
+- New full-width panel in the Charts section, populated from active holdings
+- Per-holding tabs for one-click ticker switching
+- Free-text symbol input (stocks, crypto like `BTC-USD`, indices)
+- Interval dropdown (1m, 2m, 5m, 15m, 30m, 1h) with auto-refresh on change
+- Candlestick chart with dedicated volume pane (domain-split y-axes)
+- Category-axis x-labels (`MM-DD HH:MM`) to eliminate overnight/weekend gaps
+- Monospace freshness status line, green when live, red when stale
+- Info modal explaining Yahoo's windows, staleness math, and caching
+
+---
+
 ## v2.0.0 (2026-04-13)
 
 Complete rebrand from FinGPT to Veris. New visual identity, design system, and brand voice.

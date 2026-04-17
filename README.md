@@ -50,6 +50,16 @@ Built with a FastAPI backend, vanilla JavaScript frontend, SQLAlchemy persistenc
 - **Black-Litterman style expected returns**: blends implied equilibrium returns with historical means
 - **Box constraints** (5% to 60% per name) to produce investable portfolios
 
+### Intraday Minute Tape
+
+- **Minute-resolution OHLCV** pulled live from Yahoo via yfinance
+- Six intervals: **1m, 2m, 5m, 15m, 30m, 1h** (plus 60m, 90m)
+- **Interval-aware default windows** so Yahoo's caps are never hit (1m→1d, 5m→5d, 30m→1mo, 1h→3mo)
+- **UTC-normalized timestamps** on every bar, independent of server timezone
+- **Freshness flag** on the newest bar: `age_seconds`, `is_stale` keyed to 3× the bar interval for stocks, 2× for crypto
+- **Interval-tuned caching**: 30s TTL for 1m, 120s for 2–5m, 300s for coarser bars
+- Per-holding tabs plus free-text symbol input (works for stocks, crypto like `BTC-USD`, indices)
+
 ### Options Chain with Black-Scholes Greeks
 
 - Full Black-Scholes pricing with **delta, gamma, theta, vega, rho**
@@ -188,6 +198,7 @@ Open **http://localhost:8000**. Enter your holdings and click "Analyze Portfolio
 | 3 | **AI Insight** | Citation-backed research from the language model (optional) |
 | 4 | **Holdings Detail** | 16-column table with per-stock metrics. CSV/JSON export |
 | 5 | **Price Charts** | Interactive candlestick charts with SMA overlays |
+| 5b | **Intraday Tape** | Minute-resolution OHLCV candles (1m–1h) with live/stale freshness flag |
 | 6 | **Monte Carlo VaR** | 10,000 simulated paths, VaR/CVaR, fan chart |
 | 7 | **Efficient Frontier** | Markowitz optimization with current vs optimal weights |
 | 8 | **Correlation Matrix** | Pairwise correlation heatmap |
@@ -212,13 +223,14 @@ Every metric card discloses its computation parameters. Every info button shows 
 
 ## API Endpoints
 
-### Analytics (15 endpoints)
+### Analytics (16 endpoints)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/health` | GET | Backend + model server status |
 | `/api/quote/{symbol}` | GET | Real-time stock quote |
 | `/api/daily/{symbol}` | GET | Daily OHLCV data |
+| `/api/intraday/{symbol}` | GET | Intraday OHLCV bars (1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h) |
 | `/api/news` | GET | Financial news for tickers |
 | `/api/macro` | GET | FRED macro snapshot |
 | `/api/filings/{ticker}` | GET | SEC EDGAR filings |
