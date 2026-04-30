@@ -347,7 +347,7 @@ class YFinanceClient:
         try:
             result = await _run_sync(self._get_quote_sync, symbol)
             if "error" not in result:
-                cache.set(cache_key, result, ttl_seconds=300)  # 5 min
+                cache.set(cache_key, result, ttl_seconds=900)  # 15 min
             return result
         except Exception as e:
             logger.error("Failed to fetch quote for %s: %s", symbol, e)

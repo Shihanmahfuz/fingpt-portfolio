@@ -1592,7 +1592,21 @@ async function doRegister() {
   } catch (e) { errEl.textContent = 'Connection error: ' + e.message; }
 }
 
-function enterGuest() { _clearSession(); _enterApp(); }
+function enterGuest() {
+  _clearSession();
+  // Fresh dashboard for every guest session
+  localStorage.removeItem('myBets_guest');
+  localStorage.removeItem('myPredictions_guest');
+  localStorage.removeItem('veris_learner_guest');
+  holdings = [
+    { symbol: 'AAPL', shares: 10, avg_cost: 170 },
+    { symbol: 'MSFT', shares: 5, avg_cost: 380 },
+    { symbol: 'GOOGL', shares: 3, avg_cost: 140 },
+  ];
+  renderHoldings();
+  document.getElementById('results').style.display = 'none';
+  _enterApp();
+}
 
 function doLogout() {
   _clearSession();

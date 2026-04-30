@@ -1398,4 +1398,4 @@ if __name__ == "__main__":
     print("\n  Starting Veris — Portfolio Intelligence...")
     print("   Frontend: http://localhost:8000")
     print("   API docs: http://localhost:8000/docs\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, workers=1, limit_concurrency=50, timeout_keep_alive=30)
