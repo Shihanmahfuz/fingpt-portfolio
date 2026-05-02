@@ -1614,7 +1614,7 @@ let allocationChart = null;
 let lastAnalysisData = null;
 
 // ── Session (persisted in localStorage) ────
-let _session = { userId: null, portfolioId: null, username: null, token: null };
+let _session = { userId: null, portfolioId: null, username: null };
 
 function _loadSession() {
   try {
@@ -1624,25 +1624,8 @@ function _loadSession() {
   return false;
 }
 function _saveSession() { localStorage.setItem('veris_session', JSON.stringify(_session)); }
-function _clearSession() { _session = { userId: null, portfolioId: null, username: null, token: null }; localStorage.removeItem('veris_session'); }
-function isLoggedIn() { return !!_session.userId && !!_session.token; }
-
-// ── Authenticated fetch wrapper ─────────────
-// Adds Authorization: Bearer <token> for any /api/db/* call. Auto-logs out on 401.
-async function authFetch(url, options = {}) {
-  const opts = { ...options, headers: { ...(options.headers || {}) } };
-  if (_session.token && url.startsWith('/api/db/')) {
-    opts.headers['Authorization'] = 'Bearer ' + _session.token;
-  }
-  const r = await fetch(url, opts);
-  if (r.status === 401 && _session.token) {
-    // Token expired or invalid — clear session and prompt re-login
-    _clearSession();
-    if (typeof showAuthOverlay === 'function') showAuthOverlay();
-    else location.reload();
-  }
-  return r;
-}
+function _clearSession() { _session = { userId: null, portfolioId: null, username: null }; localStorage.removeItem('veris_session'); }
+function isLoggedIn() { return !!_session.userId; }
 
 // ── Auth UI ────────────────────────────────
 function showLogin() {
@@ -1675,7 +1658,6 @@ async function doLogin() {
     const user = await r.json();
     _session.userId = user.id;
     _session.username = user.username;
-    _session.token = user.session_token;
     _saveSession();
     await _loadUserPortfolio();
     _enterApp();
@@ -1703,7 +1685,6 @@ async function doRegister() {
     const user = await r.json();
     _session.userId = user.id;
     _session.username = user.username;
-    _session.token = user.session_token;
     _saveSession();
     await _loadUserPortfolio();
     _enterApp();
@@ -1761,7 +1742,7 @@ async function _loadUserPortfolio() {
   if (!_session.userId) return;
   try {
     // Get user's portfolios
-    const r = await authFetch(`/api/db/users/${_session.userId}/portfolios`);
+    const r = await fetch(`/api/db/users/${_session.userId}/portfolios`);
     if (!r.ok) return;
     const portfolios = await r.json();
     if (!portfolios.length) return;
@@ -1770,7 +1751,7 @@ async function _loadUserPortfolio() {
     _session.portfolioId = pf.id;
     _saveSession();
     // Load holdings
-    const hr = await authFetch(`/api/db/portfolios/${pf.id}/holdings`);
+    const hr = await fetch(`/api/db/portfolios/${pf.id}/holdings`);
     if (!hr.ok) return;
     const dbHoldings = await hr.json();
     if (dbHoldings.length) {
@@ -1789,17 +1770,17 @@ async function _syncHoldingsToDb() {
   if (!isLoggedIn() || !_session.portfolioId) return;
   try {
     // Get current DB holdings
-    const r = await authFetch(`/api/db/portfolios/${_session.portfolioId}/holdings`);
+    const r = await fetch(`/api/db/portfolios/${_session.portfolioId}/holdings`);
     if (!r.ok) return;
     const existing = await r.json();
-    // Delete all existing holdings first (clean sync) — server derives user_id from session token
+    // Delete all existing holdings first (clean sync)
     await Promise.all(existing.map(h =>
-      authFetch(`/api/db/holdings/${h.id}`, { method: 'DELETE' })
+      fetch(`/api/db/holdings/${h.id}?user_id=${_session.userId}`, { method: 'DELETE' })
     ));
     // Add current holdings
     const valid = holdings.filter(h => h.symbol && h.symbol.trim() && h.shares > 0);
     await Promise.all(valid.map(h =>
-      authFetch(`/api/db/portfolios/${_session.portfolioId}/holdings`, {
+      fetch(`/api/db/portfolios/${_session.portfolioId}/holdings?user_id=${_session.userId}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symbol: h.symbol.trim().toUpperCase(),
@@ -3834,11 +3815,9 @@ function _download(c, f, t) { const b = new Blob([c], { type: t }), u = URL.crea
 let _adminData = null;
 let _adminTab = 'users';
 let _adminUserId = null;
-let _adminToken = null;
 
 function openAdmin() {
   _adminUserId = null;
-  _adminToken = null;
   document.getElementById('adminLoginGate').style.display = '';
   document.getElementById('adminDashboard').style.display = 'none';
   document.getElementById('adminUsername').value = '';
@@ -3850,7 +3829,6 @@ function openAdmin() {
 function closeAdmin() {
   document.getElementById('adminOverlay').classList.remove('active');
   _adminUserId = null;
-  _adminToken = null;
 }
 
 async function doAdminLogin() {
@@ -3870,7 +3848,6 @@ async function doAdminLogin() {
     if (!r.ok) { errorEl.textContent = 'Login failed'; return; }
     const data = await r.json();
     _adminUserId = data.user_id;
-    _adminToken = data.session_token;
     document.getElementById('adminLoginGate').style.display = 'none';
     document.getElementById('adminDashboard').style.display = '';
     loadAdminData();
@@ -3883,9 +3860,7 @@ async function loadAdminData() {
   const content = document.getElementById('adminContent');
   content.innerHTML = '<div class="loader">Loading database</div>';
   try {
-    const r = await fetch('/api/db/admin/overview', {
-      headers: { 'Authorization': 'Bearer ' + _adminToken },
-    });
+    const r = await fetch(`/api/db/admin/overview?user_id=${encodeURIComponent(_adminUserId)}`);
     if (r.status === 403) { closeAdmin(); openAdmin(); return; }
     if (!r.ok) throw new Error('Failed to load');
     _adminData = await r.json();

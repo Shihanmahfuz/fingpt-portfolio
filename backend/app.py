@@ -36,8 +36,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from backend.cache import cache
 from backend.data_fetcher import create_clients
 from backend.model_client import create_model_client
-from backend.auth import verify_session, verify_session_matches, issue_token, rate_limit
-import re
 from backend.portfolio import analyze_portfolio
 from backend.advanced_analytics import (
     monte_carlo_simulation,
@@ -750,48 +748,36 @@ async def institutional_holders(tickers: str = "AAPL"):
 
 # ── Users ────────────────────────────────────────────────────
 
-def _user_with_token(user) -> dict:
-    """Serialize user + signed session token for login/register responses."""
-    base = schemas.UserResponse.model_validate(user).model_dump()
-    base["session_token"] = issue_token(str(user.id))
-    return base
-
-
-@app.post("/api/db/users/register")
+@app.post("/api/db/users/register", response_model=schemas.UserResponse)
 async def register_user(req: schemas.UserCreate, request: Request,
                         db: Session = Depends(get_db)):
-    """Register a new user account. Creates a default portfolio automatically.
-    Returns the user plus a signed session_token to use as Bearer auth."""
-    rate_limit(request, "register", max_calls=5, window_seconds=300)
+    """Register a new user account. Creates a default portfolio automatically."""
     try:
         user = crud.create_user(
             db, req.username, req.email, req.password,
             display_name=req.display_name,
             ip=request.client.host if request.client else None,
         )
-        return _user_with_token(user)
+        return user
     except ValueError as e:
         raise HTTPException(409, str(e))
 
 
-@app.post("/api/db/users/login")
+@app.post("/api/db/users/login", response_model=schemas.UserResponse)
 async def login_user(req: schemas.UserLogin, request: Request,
                      db: Session = Depends(get_db)):
-    """Authenticate a user. Returns the user plus a signed session_token.
-    Rate-limited to 10 attempts per 5 minutes per IP to defeat brute force."""
-    rate_limit(request, "login", max_calls=10, window_seconds=300)
+    """Authenticate a user by username and password."""
     user = crud.authenticate_user(
         db, req.username, req.password,
         ip=request.client.host if request.client else None,
     )
     if not user:
         raise HTTPException(401, "Invalid credentials")
-    return _user_with_token(user)
+    return user
 
 
 @app.get("/api/db/users/{user_id}", response_model=schemas.UserResponse)
-async def get_user(user_id: str, request: Request, db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
+async def get_user(user_id: str, db: Session = Depends(get_db)):
     user = crud.get_user(db, user_id)
     if not user:
         raise HTTPException(404, "User not found")
@@ -799,9 +785,8 @@ async def get_user(user_id: str, request: Request, db: Session = Depends(get_db)
 
 
 @app.patch("/api/db/users/{user_id}", response_model=schemas.UserResponse)
-async def update_user(user_id: str, req: schemas.UserUpdate, request: Request,
+async def update_user(user_id: str, req: schemas.UserUpdate,
                       db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     user = crud.update_user(db, user_id, **req.model_dump(exclude_none=True))
     if not user:
         raise HTTPException(404, "User not found")
@@ -809,9 +794,8 @@ async def update_user(user_id: str, req: schemas.UserUpdate, request: Request,
 
 
 @app.get("/api/db/users/{user_id}/dashboard")
-async def user_dashboard(user_id: str, request: Request, db: Session = Depends(get_db)):
+async def user_dashboard(user_id: str, db: Session = Depends(get_db)):
     """Aggregated dashboard stats for a user (portfolio count, holdings, latest metrics)."""
-    await verify_session_matches(request, user_id)
     user = crud.get_user(db, user_id)
     if not user:
         raise HTTPException(404, "User not found")
@@ -821,9 +805,8 @@ async def user_dashboard(user_id: str, request: Request, db: Session = Depends(g
 # ── Portfolios ───────────────────────────────────────────────
 
 @app.post("/api/db/users/{user_id}/portfolios", response_model=schemas.PortfolioResponse)
-async def create_portfolio(user_id: str, req: schemas.PortfolioCreate, request: Request,
+async def create_portfolio(user_id: str, req: schemas.PortfolioCreate,
                            db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     user = crud.get_user(db, user_id)
     if not user:
         raise HTTPException(404, "User not found")
@@ -834,8 +817,7 @@ async def create_portfolio(user_id: str, req: schemas.PortfolioCreate, request: 
 
 
 @app.get("/api/db/users/{user_id}/portfolios")
-async def list_portfolios(user_id: str, request: Request, db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
+async def list_portfolios(user_id: str, db: Session = Depends(get_db)):
     portfolios = crud.get_portfolios(db, user_id)
     result = []
     for p in portfolios:
@@ -846,22 +828,19 @@ async def list_portfolios(user_id: str, request: Request, db: Session = Depends(
 
 
 @app.get("/api/db/portfolios/{portfolio_id}", response_model=schemas.PortfolioResponse)
-async def get_portfolio(portfolio_id: str, request: Request, db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
+async def get_portfolio(portfolio_id: str, db: Session = Depends(get_db)):
     portfolio = crud.get_portfolio(db, portfolio_id)
     if not portfolio:
         raise HTTPException(404, "Portfolio not found")
-    if str(portfolio.user_id) != auth_user:
-        raise HTTPException(403, "Cannot access another user's portfolio")
     return portfolio
 
 
 @app.patch("/api/db/portfolios/{portfolio_id}")
-async def update_portfolio(portfolio_id: str, req: schemas.PortfolioUpdate, request: Request,
+async def update_portfolio(portfolio_id: str, req: schemas.PortfolioUpdate,
+                           user_id: str = Query(...),
                            db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
     portfolio = crud.update_portfolio(
-        db, portfolio_id, auth_user, **req.model_dump(exclude_none=True),
+        db, portfolio_id, user_id, **req.model_dump(exclude_none=True),
     )
     if not portfolio:
         raise HTTPException(404, "Portfolio not found")
@@ -869,10 +848,9 @@ async def update_portfolio(portfolio_id: str, req: schemas.PortfolioUpdate, requ
 
 
 @app.delete("/api/db/portfolios/{portfolio_id}")
-async def delete_portfolio(portfolio_id: str, request: Request,
+async def delete_portfolio(portfolio_id: str, user_id: str = Query(...),
                            db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    if not crud.delete_portfolio(db, portfolio_id, auth_user):
+    if not crud.delete_portfolio(db, portfolio_id, user_id):
         raise HTTPException(404, "Portfolio not found")
     return {"status": "deleted"}
 
@@ -880,14 +858,12 @@ async def delete_portfolio(portfolio_id: str, request: Request,
 # ── Holdings ─────────────────────────────────────────────────
 
 @app.post("/api/db/portfolios/{portfolio_id}/holdings", response_model=schemas.HoldingResponse)
-async def add_holding(portfolio_id: str, req: schemas.HoldingCreate, request: Request,
+async def add_holding(portfolio_id: str, req: schemas.HoldingCreate,
+                      user_id: str = Query(...),
                       db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    if not _valid_ticker(req.symbol):
-        raise HTTPException(422, "Invalid ticker symbol")
     try:
         holding = crud.add_holding(
-            db, portfolio_id, auth_user,
+            db, portfolio_id, user_id,
             symbol=req.symbol, shares=req.shares, avg_cost=req.avg_cost,
             dividends_per_share=req.dividends_per_share, sector=req.sector,
             asset_class=req.asset_class, notes=req.notes,
@@ -898,75 +874,52 @@ async def add_holding(portfolio_id: str, req: schemas.HoldingCreate, request: Re
 
 
 @app.get("/api/db/portfolios/{portfolio_id}/holdings")
-async def list_holdings(portfolio_id: str, request: Request, db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    portfolio = crud.get_portfolio(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(404, "Portfolio not found")
-    if str(portfolio.user_id) != auth_user:
-        raise HTTPException(403, "Cannot access another user's holdings")
+async def list_holdings(portfolio_id: str, db: Session = Depends(get_db)):
     return [schemas.HoldingResponse.model_validate(h)
             for h in crud.get_holdings(db, portfolio_id)]
 
 
 @app.patch("/api/db/holdings/{holding_id}", response_model=schemas.HoldingResponse)
-async def update_holding(holding_id: str, req: schemas.HoldingUpdate, request: Request,
+async def update_holding(holding_id: str, req: schemas.HoldingUpdate,
+                         user_id: str = Query(...),
                          db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    holding = crud.update_holding(db, holding_id, auth_user, **req.model_dump(exclude_none=True))
+    holding = crud.update_holding(db, holding_id, user_id, **req.model_dump(exclude_none=True))
     if not holding:
         raise HTTPException(404, "Holding not found")
     return holding
 
 
 @app.delete("/api/db/holdings/{holding_id}")
-async def remove_holding(holding_id: str, request: Request,
+async def remove_holding(holding_id: str, user_id: str = Query(...),
                          db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    if not crud.remove_holding(db, holding_id, auth_user):
+    if not crud.remove_holding(db, holding_id, user_id):
         raise HTTPException(404, "Holding not found")
     return {"status": "deleted"}
 
 
 # ── Snapshots ────────────────────────────────────────────────
 
-async def _ensure_owns_portfolio(request: Request, portfolio_id: str, db: Session) -> str:
-    """Verify caller is logged in AND owns the portfolio. Returns auth_user."""
-    auth_user = await verify_session(request)
-    portfolio = crud.get_portfolio(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(404, "Portfolio not found")
-    if str(portfolio.user_id) != auth_user:
-        raise HTTPException(403, "Cannot access another user's portfolio")
-    return auth_user
-
-
 @app.get("/api/db/portfolios/{portfolio_id}/snapshots")
-async def list_snapshots(portfolio_id: str, request: Request,
+async def list_snapshots(portfolio_id: str,
                          page: int = Query(1, ge=1),
                          page_size: int = Query(20, ge=1, le=100),
                          db: Session = Depends(get_db)):
-    await _ensure_owns_portfolio(request, portfolio_id, db)
     result = crud.get_snapshots(db, portfolio_id, page, page_size)
     result["items"] = [schemas.SnapshotResponse.model_validate(s) for s in result["items"]]
     return result
 
 
 @app.get("/api/db/snapshots/{snapshot_id}", response_model=schemas.SnapshotDetailResponse)
-async def get_snapshot(snapshot_id: str, request: Request, db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
+async def get_snapshot(snapshot_id: str, db: Session = Depends(get_db)):
     snapshot = crud.get_snapshot(db, snapshot_id)
     if not snapshot:
         raise HTTPException(404, "Snapshot not found")
-    if str(snapshot.user_id) != auth_user:
-        raise HTTPException(403, "Cannot access another user's snapshot")
     return snapshot
 
 
 @app.get("/api/db/portfolios/{portfolio_id}/snapshots/latest",
          response_model=schemas.SnapshotResponse)
-async def latest_snapshot(portfolio_id: str, request: Request, db: Session = Depends(get_db)):
-    await _ensure_owns_portfolio(request, portfolio_id, db)
+async def latest_snapshot(portfolio_id: str, db: Session = Depends(get_db)):
     snapshot = crud.get_latest_snapshot(db, portfolio_id)
     if not snapshot:
         raise HTTPException(404, "No snapshots found")
@@ -974,11 +927,10 @@ async def latest_snapshot(portfolio_id: str, request: Request, db: Session = Dep
 
 
 @app.get("/api/db/portfolios/{portfolio_id}/timeseries/{metric}")
-async def snapshot_timeseries(portfolio_id: str, metric: str, request: Request,
+async def snapshot_timeseries(portfolio_id: str, metric: str,
                               limit: int = Query(90, ge=1, le=365),
                               db: Session = Depends(get_db)):
     """Time series of a single metric from snapshot history (for charting)."""
-    await _ensure_owns_portfolio(request, portfolio_id, db)
     try:
         return crud.get_snapshot_timeseries(db, portfolio_id, metric, limit)
     except ValueError as e:
@@ -988,14 +940,12 @@ async def snapshot_timeseries(portfolio_id: str, metric: str, request: Request,
 # ── Trade Journal ────────────────────────────────────────────
 
 @app.post("/api/db/portfolios/{portfolio_id}/trades", response_model=schemas.TradeResponse)
-async def record_trade(portfolio_id: str, req: schemas.TradeCreate, request: Request,
+async def record_trade(portfolio_id: str, req: schemas.TradeCreate,
+                       user_id: str = Query(...),
                        db: Session = Depends(get_db)):
-    auth_user = await _ensure_owns_portfolio(request, portfolio_id, db)
-    if not _valid_ticker(req.symbol):
-        raise HTTPException(422, "Invalid ticker symbol")
     try:
         trade = crud.record_trade(
-            db, portfolio_id, auth_user,
+            db, portfolio_id, user_id,
             symbol=req.symbol, action=req.action, shares=req.shares,
             price=req.price, total_cost=req.total_cost,
             trade_type=req.trade_type, simulation_result=req.simulation_result,
@@ -1007,54 +957,46 @@ async def record_trade(portfolio_id: str, req: schemas.TradeCreate, request: Req
 
 
 @app.get("/api/db/portfolios/{portfolio_id}/trades")
-async def list_trades(portfolio_id: str, request: Request,
+async def list_trades(portfolio_id: str,
                       trade_type: Optional[str] = None,
                       page: int = Query(1, ge=1),
                       page_size: int = Query(50, ge=1, le=100),
                       db: Session = Depends(get_db)):
-    await _ensure_owns_portfolio(request, portfolio_id, db)
     result = crud.get_trades(db, portfolio_id, page, page_size, trade_type)
     result["items"] = [schemas.TradeResponse.model_validate(t) for t in result["items"]]
     return result
 
 
 @app.get("/api/db/portfolios/{portfolio_id}/trades/summary")
-async def trade_summary(portfolio_id: str, request: Request, db: Session = Depends(get_db)):
-    await _ensure_owns_portfolio(request, portfolio_id, db)
+async def trade_summary(portfolio_id: str, db: Session = Depends(get_db)):
     return crud.get_trade_summary(db, portfolio_id)
 
 
 # ── Watchlist ────────────────────────────────────────────────
 
 @app.post("/api/db/users/{user_id}/watchlist", response_model=schemas.WatchlistResponse)
-async def add_to_watchlist(user_id: str, req: schemas.WatchlistAdd, request: Request,
+async def add_to_watchlist(user_id: str, req: schemas.WatchlistAdd,
                            db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
-    if not _valid_ticker(req.symbol):
-        raise HTTPException(422, "Invalid ticker symbol")
     return crud.add_to_watchlist(db, user_id, req.symbol, req.target_price, req.notes)
 
 
 @app.get("/api/db/users/{user_id}/watchlist")
-async def get_watchlist(user_id: str, request: Request, db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
+async def get_watchlist(user_id: str, db: Session = Depends(get_db)):
     return [schemas.WatchlistResponse.model_validate(w)
             for w in crud.get_watchlist(db, user_id)]
 
 
 @app.delete("/api/db/watchlist/{item_id}")
-async def remove_from_watchlist(item_id: str, request: Request,
+async def remove_from_watchlist(item_id: str, user_id: str = Query(...),
                                 db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    if not crud.remove_from_watchlist(db, item_id, auth_user):
+    if not crud.remove_from_watchlist(db, item_id, user_id):
         raise HTTPException(404, "Watchlist item not found")
     return {"status": "deleted"}
 
 
 @app.delete("/api/db/users/{user_id}/watchlist/{symbol}")
-async def remove_watchlist_by_symbol(user_id: str, symbol: str, request: Request,
+async def remove_watchlist_by_symbol(user_id: str, symbol: str,
                                      db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     if not crud.remove_from_watchlist_by_symbol(db, user_id, symbol):
         raise HTTPException(404, "Symbol not in watchlist")
     return {"status": "deleted"}
@@ -1063,9 +1005,8 @@ async def remove_watchlist_by_symbol(user_id: str, symbol: str, request: Request
 # ── Alerts ───────────────────────────────────────────────────
 
 @app.post("/api/db/users/{user_id}/alerts", response_model=schemas.AlertResponse)
-async def create_alert(user_id: str, req: schemas.AlertCreate, request: Request,
+async def create_alert(user_id: str, req: schemas.AlertCreate,
                        db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     return crud.create_alert(
         db, user_id, req.metric, req.condition, req.threshold,
         symbol=req.symbol, portfolio_id=req.portfolio_id,
@@ -1073,29 +1014,27 @@ async def create_alert(user_id: str, req: schemas.AlertCreate, request: Request,
 
 
 @app.get("/api/db/users/{user_id}/alerts")
-async def list_alerts(user_id: str, request: Request,
+async def list_alerts(user_id: str,
                       active_only: bool = Query(True),
                       db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     return [schemas.AlertResponse.model_validate(a)
             for a in crud.get_alerts(db, user_id, active_only)]
 
 
 @app.patch("/api/db/alerts/{alert_id}", response_model=schemas.AlertResponse)
-async def update_alert(alert_id: str, req: schemas.AlertUpdate, request: Request,
+async def update_alert(alert_id: str, req: schemas.AlertUpdate,
+                       user_id: str = Query(...),
                        db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    alert = crud.update_alert(db, alert_id, auth_user, **req.model_dump(exclude_none=True))
+    alert = crud.update_alert(db, alert_id, user_id, **req.model_dump(exclude_none=True))
     if not alert:
         raise HTTPException(404, "Alert not found")
     return alert
 
 
 @app.delete("/api/db/alerts/{alert_id}")
-async def delete_alert(alert_id: str, request: Request,
+async def delete_alert(alert_id: str, user_id: str = Query(...),
                        db: Session = Depends(get_db)):
-    auth_user = await verify_session(request)
-    if not crud.delete_alert(db, alert_id, auth_user):
+    if not crud.delete_alert(db, alert_id, user_id):
         raise HTTPException(404, "Alert not found")
     return {"status": "deleted"}
 
@@ -1103,21 +1042,19 @@ async def delete_alert(alert_id: str, request: Request,
 # ── Audit Log ────────────────────────────────────────────────
 
 @app.get("/api/db/users/{user_id}/audit")
-async def user_audit_log(user_id: str, request: Request,
+async def user_audit_log(user_id: str,
                          action: Optional[str] = None,
                          page: int = Query(1, ge=1),
                          page_size: int = Query(50, ge=1, le=100),
                          db: Session = Depends(get_db)):
-    await verify_session_matches(request, user_id)
     result = crud.get_audit_log(db, user_id, action, page, page_size)
     result["items"] = [schemas.AuditLogResponse.model_validate(e) for e in result["items"]]
     return result
 
 
 @app.get("/api/db/users/{user_id}/activity")
-async def user_activity_summary(user_id: str, request: Request, db: Session = Depends(get_db)):
+async def user_activity_summary(user_id: str, db: Session = Depends(get_db)):
     """High-level activity breakdown for a user."""
-    await verify_session_matches(request, user_id)
     return crud.get_user_activity_summary(db, user_id)
 
 
@@ -1126,8 +1063,7 @@ async def user_activity_summary(user_id: str, request: Request, db: Session = De
 @app.post("/api/db/admin/login")
 async def admin_login(req: schemas.UserLogin, request: Request,
                       db: Session = Depends(get_db)):
-    """Authenticate as admin. Returns user info + signed token if they have admin privileges."""
-    rate_limit(request, "admin_login", max_calls=5, window_seconds=300)
+    """Authenticate as admin. Returns user if they have admin privileges."""
     user = crud.authenticate_user(
         db, req.username, req.password,
         ip=request.client.host if request.client else None,
@@ -1136,12 +1072,7 @@ async def admin_login(req: schemas.UserLogin, request: Request,
         raise HTTPException(401, "Invalid credentials")
     if not user.is_admin:
         raise HTTPException(403, "Access denied: admin privileges required")
-    return {
-        "ok": True,
-        "username": user.username,
-        "user_id": user.id,
-        "session_token": issue_token(str(user.id)),
-    }
+    return {"ok": True, "username": user.username, "user_id": user.id}
 
 
 @app.post("/api/db/admin/promote/{username}")
@@ -1164,10 +1095,10 @@ async def promote_to_admin(username: str, admin_key: str = Query(...),
 
 
 @app.get("/api/db/admin/overview")
-async def admin_overview(request: Request, db: Session = Depends(get_db)):
-    """Full database overview for the admin panel. Requires admin session token."""
-    auth_user = await verify_session(request)
-    admin_user = crud.get_user(db, auth_user)
+async def admin_overview(user_id: str = Query(..., description="Admin user ID"),
+                         db: Session = Depends(get_db)):
+    """Full database overview for the admin panel. Requires admin user_id."""
+    admin_user = crud.get_user(db, user_id)
     if not admin_user or not admin_user.is_admin:
         raise HTTPException(403, "Access denied: admin privileges required")
     from backend.database.models import (
@@ -1376,14 +1307,6 @@ News: {" | ".join(f'{a["title"]}' for a in news[:3] if a.get("title"))}
 Write 3-4 paragraphs: (1) overall verdict on this portfolio, (2) the biggest risk right now and why it matters, (3) which holdings are working and which are dragging, (4) the top 2 actions the investor should take. Be direct. [/INST]
 
 This portfolio"""
-
-
-_TICKER_RE = re.compile(r'^[A-Za-z0-9.\-^]{1,12}$')
-
-
-def _valid_ticker(symbol: str) -> bool:
-    """Allowlist for user-supplied tickers — alphanumeric plus . - ^ only."""
-    return bool(symbol and _TICKER_RE.match(symbol.strip()))
 
 
 def _clean_model_output(text: str) -> str:
