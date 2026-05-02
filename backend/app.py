@@ -70,12 +70,14 @@ def shutdown_db():
     close_db()
     logger.info("Database connections closed")
 
-# CORS
+# CORS — restrict to known verbs and headers; reject wildcard origins to prevent
+# combined CSRF/IDOR risk if a deployer accidentally sets CORS_ORIGINS=*.
+_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",") if o.strip() and o.strip() != "*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:8000").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins or ["http://localhost:8000"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Admin-Key"],
 )
 clients = create_clients()
 model = create_model_client()
@@ -1777,10 +1779,15 @@ def _build_full_portfolio_report(
 
 
 @app.post("/api/cache/clear")
-async def clear_cache():
-    """Clear the in-memory data cache."""
+async def clear_cache(admin_key: str = Query(..., description="ADMIN_KEY required")):
+    """Clear the in-memory data cache. Requires ADMIN_KEY to prevent low-grade DoS."""
+    expected = os.getenv("ADMIN_KEY")
+    if not expected:
+        raise HTTPException(503, "ADMIN_KEY not configured")
+    if not hmac.compare_digest(admin_key, expected):
+        raise HTTPException(403, "Invalid admin key")
     cache.clear()
-    logger.info("Cache cleared")
+    logger.info("Cache cleared by admin")
     return {"status": "ok", "message": "Cache cleared"}
 
 
